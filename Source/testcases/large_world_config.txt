@@ -1,0 +1,16 @@
+World Configuration: large_world
+Size: 8x8
+Wumpus count: 3
+Pit probability: 0.25
+Random seed: 456
+
+World State:
+Pits: [(4, 4), (2, 1), (6, 5), (2, 0), (6, 4), (4, 2), (1, 4), (6, 7), (3, 3), (7, 2)]
+Wumpus positions: [(7, 5), (6, 3), (3, 0)]
+Gold position: (1, 1)
+
+Result:
+Success: False
+Score: -7
+Steps: 1000
+Agent alive: True
