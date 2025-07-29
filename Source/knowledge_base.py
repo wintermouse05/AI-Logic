@@ -424,6 +424,34 @@ class KnowledgeBase:
             'negative_facts': [str(f) for f in self.negative_facts],
             'safe_cells': list(self.infer_safe_cells()),
             'dangerous_cells': list(self.infer_dangerous_cells()),
-            'possible_wumpus': list(self.infer_wumpus_locations())
+            'possible_wumpus': list(self.infer_wumpus_locations()),
+            'certain_wumpus': list(self.infer_certain_wumpus()),
+            'certain_pits': list(self.infer_certain_pits())
         }
         return summary
+    
+    def infer_certain_wumpus(self) -> Set[Tuple[int, int]]:
+        """Get cells where we are certain there is a wumpus"""
+        certain_wumpus = set()
+        
+        # Find cells where we explicitly know there's a wumpus
+        for x in range(self.world_size):
+            for y in range(self.world_size):
+                wumpus_prop = self._create_proposition("Wumpus", x, y)
+                if self.is_known_true(wumpus_prop):
+                    certain_wumpus.add((x, y))
+        
+        return certain_wumpus
+    
+    def infer_certain_pits(self) -> Set[Tuple[int, int]]:
+        """Get cells where we are certain there is a pit"""
+        certain_pits = set()
+        
+        # Find cells where we explicitly know there's a pit
+        for x in range(self.world_size):
+            for y in range(self.world_size):
+                pit_prop = self._create_proposition("Pit", x, y)
+                if self.is_known_true(pit_prop):
+                    certain_pits.add((x, y))
+        
+        return certain_pits

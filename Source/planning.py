@@ -302,26 +302,51 @@ class WumpusPlanner:
     def calculate_shooting_utility(self, agent_pos: Tuple[int, int], 
                                  agent_dir: Direction,
                                  wumpus_positions: Set[Tuple[int, int]]) -> float:
-        """Calculate utility of shooting in current direction"""
+        """Calculate utility of shooting - VERY conservative approach
+        
+        Only returns positive utility if shooting is absolutely necessary
+        for reaching gold or escaping. Otherwise returns negative utility
+        to discourage unnecessary shooting.
+        """
         # Trace shooting path
         x, y = agent_pos
         dx, dy = agent_dir.value
         
-        utility = 0.0
         shooting_cost = 10.0  # Cost of shooting
+        wumpus_kill_benefit = 50.0  # Reduced benefit - only worth it if necessary
+        
+        # Find if we would hit a wumpus
+        target_wumpus = None
+        distance_to_wumpus = 0
         
         while True:
             x += dx
             y += dy
+            distance_to_wumpus += 1
+            
             if not self._is_valid_position((x, y)):
-                break  # Arrow hits wall
+                break  # Arrow hits wall, no wumpus hit
             
             if (x, y) in wumpus_positions:
-                # Hit a wumpus - positive utility
-                utility += 100.0  # Benefit of killing wumpus
+                target_wumpus = (x, y)
                 break
         
-        return utility - shooting_cost
+        if not target_wumpus:
+            return -shooting_cost  # No wumpus to hit, waste of arrow
+        
+        # Check if killing this wumpus is actually necessary
+        # This is a simplified check - the agent's _consider_shooting method
+        # does the detailed path analysis
+        
+        # Conservative approach: Only positive utility if wumpus is very close
+        # and likely blocking important paths
+        if distance_to_wumpus <= 2:
+            # Close wumpus might be blocking us
+            necessity_bonus = 30.0
+            return wumpus_kill_benefit + necessity_bonus - shooting_cost
+        else:
+            # Distant wumpus - probably not worth shooting
+            return wumpus_kill_benefit - shooting_cost - (distance_to_wumpus * 5.0)
     
     def plan_gold_retrieval(self, current_pos: Tuple[int, int], 
                           current_dir: Direction,

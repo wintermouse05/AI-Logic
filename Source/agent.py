@@ -20,7 +20,7 @@ class WumpusAgent:
         self.kb = KnowledgeBase(world_size, num_wumpus)
         self.planner = WumpusPlanner(world_size, self.kb)
         
-        # Agent state
+        # Agent state (gets reset with new map)
         self.position = (0, 0)
         self.direction = Direction.EAST
         self.has_arrow = True
@@ -30,9 +30,15 @@ class WumpusAgent:
         self.gold_position = None
         self.plan = []  # Current action plan
         
-        # Strategy parameters
+        # Strategy parameters (preserved across resets - agent gets smarter)
         self.exploration_strategy = "safe_first"  # "safe_first", "cautious", "aggressive"
         self.risk_tolerance = 0.3
+        
+        # Learning parameters (improve over time)
+        self.games_played = 0
+        self.successful_strategies = []  # Track what worked
+        self.failed_patterns = []       # Remember what failed
+        self.adaptive_caution = 0.3     # Starts cautious, adapts over time
         
     def perceive(self, percept: Percept):
         """Process percept and update knowledge base"""
@@ -93,49 +99,257 @@ class WumpusAgent:
                 self.plan = gold_plan + [Action.GRAB]
                 return self.plan.pop(0)
         
-        # Consider shooting if we have arrow and can hit wumpus
+        # Exploration strategy - try to find safe paths first
+        next_action = self._choose_exploration_action()
+        if next_action:
+            return next_action
+        
+        # Try to find alternative paths around wumpus
+        alternative_action = self._find_alternative_path()
+        if alternative_action:
+            return alternative_action
+        
+        # Consider shooting ONLY as absolute last resort
         if self.has_arrow:
             shoot_action = self._consider_shooting()
             if shoot_action:
                 return shoot_action
         
-        # Exploration strategy
-        next_action = self._choose_exploration_action()
-        if next_action:
-            return next_action
-        
         # Fallback: random safe action
         return self._choose_safe_random_action()
     
     def _consider_shooting(self) -> Optional[Action]:
-        """Consider whether to shoot based on wumpus inference"""
+        """Only shoot wumpus as absolute last resort when blocking critical path"""
+        if not self.has_arrow:
+            return None
+            
         wumpus_locations = self.kb.infer_wumpus_locations()
-        
         if not wumpus_locations:
             return None
         
-        # Calculate utility of shooting in current direction
-        utility = self.planner.calculate_shooting_utility(
-            self.position, self.direction, wumpus_locations
-        )
+        # ONLY shoot if wumpus is blocking the ONLY path to gold or escape
+        # Strategy: Avoid shooting unless absolutely necessary to maximize score
         
-        # Shoot if utility is positive and high enough
-        if utility > 50.0:  # Threshold for shooting
-            print(f"🏹 Shooting arrow! Expected utility: {utility:.1f}")
-            return Action.SHOOT
+        # Check if wumpus is blocking our only path to gold
+        if self.gold_position and not self.has_gold:
+            if self._is_wumpus_blocking_only_path_to_gold(wumpus_locations):
+                return self._execute_strategic_shot(wumpus_locations)
         
-        # Consider turning to face a wumpus
+        # Check if wumpus is blocking our only path to escape (when we have gold)
+        if self.has_gold and self.position != (0, 0):
+            if self._is_wumpus_blocking_only_escape_path(wumpus_locations):
+                return self._execute_strategic_shot(wumpus_locations)
+        
+        # Check if we're completely trapped by wumpus with no safe moves
+        if self._is_completely_trapped_by_wumpus(wumpus_locations):
+            return self._execute_strategic_shot(wumpus_locations)
+        
+        # Otherwise, DON'T shoot - find alternative paths or wait
+        return None
+    
+    def _is_wumpus_blocking_only_path_to_gold(self, wumpus_locations: Set[Tuple[int, int]]) -> bool:
+        """Check if wumpus is blocking the ONLY safe path to gold"""
+        if not self.gold_position:
+            return False
+        
+        # Try to find ANY safe path to gold that doesn't require killing wumpus
+        safe_cells = self.kb.infer_safe_cells()
+        
+        # Use BFS to see if we can reach gold through safe cells only
+        visited = {self.position}
+        queue = [self.position]
+        
+        while queue:
+            current = queue.pop(0)
+            
+            if current == self.gold_position:
+                return False  # Found safe path, no need to shoot
+            
+            # Check adjacent cells
+            for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+                nx, ny = current[0] + dx, current[1] + dy
+                next_pos = (nx, ny)
+                
+                if (0 <= nx < self.world_size and 0 <= ny < self.world_size and 
+                    next_pos not in visited):
+                    
+                    # If it's the gold position, we can reach it if it's not with a wumpus
+                    if next_pos == self.gold_position:
+                        if next_pos not in wumpus_locations:
+                            return False  # Safe path to gold exists
+                    
+                    # Add to queue if it's definitely safe
+                    elif next_pos in safe_cells:
+                        visited.add(next_pos)
+                        queue.append(next_pos)
+        
+        # No safe path found - wumpus might be blocking
+        print("🚫 Wumpus blocking only path to gold!")
+        return True
+    
+    def _is_wumpus_blocking_only_escape_path(self, wumpus_locations: Set[Tuple[int, int]]) -> bool:
+        """Check if wumpus is blocking the ONLY safe path back to (0,0)"""
+        if not self.has_gold:
+            return False
+        
+        # Try to find ANY safe path back to start
+        safe_cells = self.kb.infer_safe_cells()
+        safe_cells.add((0, 0))  # Start is always safe
+        
+        visited = {self.position}
+        queue = [self.position]
+        
+        while queue:
+            current = queue.pop(0)
+            
+            if current == (0, 0):
+                return False  # Found safe escape path
+            
+            # Check adjacent cells
+            for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+                nx, ny = current[0] + dx, current[1] + dy
+                next_pos = (nx, ny)
+                
+                if (0 <= nx < self.world_size and 0 <= ny < self.world_size and 
+                    next_pos not in visited and next_pos in safe_cells):
+                    visited.add(next_pos)
+                    queue.append(next_pos)
+        
+        print("🚫 Wumpus blocking only escape path!")
+        return True
+    
+    def _is_completely_trapped_by_wumpus(self, wumpus_locations: Set[Tuple[int, int]]) -> bool:
+        """Check if agent is completely surrounded by wumpus with no safe moves"""
+        adjacent_positions = []
+        x, y = self.position
+        
+        for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < self.world_size and 0 <= ny < self.world_size:
+                adjacent_positions.append((nx, ny))
+        
+        safe_cells = self.kb.infer_safe_cells()
+        
+        # Check if ALL adjacent cells are either wumpus or dangerous
+        for adj_pos in adjacent_positions:
+            if adj_pos in safe_cells or adj_pos not in wumpus_locations:
+                return False  # Found at least one safe adjacent cell
+        
+        print("🚫 Completely trapped by wumpus!")
+        return True
+    
+    def _execute_strategic_shot(self, wumpus_locations: Set[Tuple[int, int]]) -> Optional[Action]:
+        """Execute strategic shot at blocking wumpus"""
+        # Find the best wumpus to shoot (closest to our path)
+        target_wumpus = None
+        min_distance = float('inf')
+        
         for wumpus_pos in wumpus_locations:
-            # Check if wumpus is in line with current position
             if self._is_in_line_of_fire(wumpus_pos):
-                # Turn to face the wumpus
-                required_dir = self._get_direction_to_target(wumpus_pos)
-                if required_dir and required_dir != self.direction:
-                    turn_actions = self._get_turn_actions(required_dir)
-                    if turn_actions:
-                        print(f"🎯 Turning to face wumpus at {wumpus_pos}")
-                        self.plan = turn_actions + [Action.SHOOT]
-                        return self.plan.pop(0)
+                # Calculate distance to this wumpus
+                distance = abs(wumpus_pos[0] - self.position[0]) + abs(wumpus_pos[1] - self.position[1])
+                if distance < min_distance:
+                    min_distance = distance
+                    target_wumpus = wumpus_pos
+        
+        if target_wumpus:
+            required_dir = self._get_direction_to_target(target_wumpus)
+            if required_dir == self.direction:
+                print(f"🎯 STRATEGIC SHOT at blocking wumpus {target_wumpus} (last resort!)")
+                return Action.SHOOT
+            elif required_dir:
+                turn_actions = self._get_turn_actions(required_dir)
+                if turn_actions:
+                    print(f"🎯 Turning for strategic shot at {target_wumpus}")
+                    self.plan = turn_actions + [Action.SHOOT]
+                    return self.plan.pop(0)
+        
+        return None
+    
+    def _find_alternative_path(self) -> Optional[Action]:
+        """Try to find alternative paths around wumpus before shooting"""
+        
+        # If we know where gold is, try to find alternative routes
+        if self.gold_position and not self.has_gold:
+            return self._find_detour_to_gold()
+        
+        # If we have gold, try alternative escape routes
+        if self.has_gold and self.position != (0, 0):
+            return self._find_detour_to_escape()
+        
+        # Try exploring safe unknown areas to discover new paths
+        return self._explore_for_new_paths()
+    
+    def _find_detour_to_gold(self) -> Optional[Action]:
+        """Find a detour route to gold that avoids known wumpus"""
+        safe_cells = self.kb.infer_safe_cells()
+        wumpus_locations = self.kb.infer_wumpus_locations()
+        
+        # Look for safe cells that might lead to alternative paths
+        for safe_cell in safe_cells:
+            if safe_cell not in self.visited_cells:
+                # Try to reach this unexplored safe cell
+                path = self.planner.find_path_to_goal(
+                    self.position, self.direction, [safe_cell],
+                    avoid_unknown=False  # Allow some risk for detours
+                )
+                if path:
+                    print(f"🔄 Taking detour to {safe_cell} to avoid wumpus")
+                    self.plan = path
+                    return self.plan.pop(0)
+        
+        return None
+    
+    def _find_detour_to_escape(self) -> Optional[Action]:
+        """Find alternative escape route when carrying gold"""
+        safe_cells = self.kb.infer_safe_cells()
+        safe_cells.add((0, 0))  # Start is always safe
+        
+        # Look for safe cells that might provide alternative escape routes
+        for safe_cell in safe_cells:
+            if safe_cell not in self.visited_cells:
+                # Check if this cell might provide a path to escape
+                path = self.planner.find_path_to_goal(
+                    self.position, self.direction, [safe_cell]
+                )
+                if path:
+                    print(f"🔄 Taking escape detour via {safe_cell}")
+                    self.plan = path
+                    return self.plan.pop(0)
+        
+        return None
+    
+    def _explore_for_new_paths(self) -> Optional[Action]:
+        """Explore unknown but potentially safe areas to find new paths"""
+        
+        # Look for unknown cells adjacent to safe cells
+        safe_cells = self.kb.infer_safe_cells()
+        unknown_cells = set()
+        
+        for safe_cell in safe_cells:
+            x, y = safe_cell
+            for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+                nx, ny = x + dx, y + dy
+                if (0 <= nx < self.world_size and 0 <= ny < self.world_size):
+                    unknown_pos = (nx, ny)
+                    if (unknown_pos not in safe_cells and 
+                        unknown_pos not in self.kb.infer_dangerous_cells() and
+                        unknown_pos not in self.visited_cells):
+                        unknown_cells.add(unknown_pos)
+        
+        # Try to explore the closest unknown cell
+        if unknown_cells:
+            closest_unknown = min(unknown_cells, 
+                                key=lambda pos: abs(pos[0] - self.position[0]) + abs(pos[1] - self.position[1]))
+            
+            path = self.planner.find_path_to_goal(
+                self.position, self.direction, [closest_unknown],
+                avoid_unknown=True  # Be cautious approaching unknown areas
+            )
+            if path:
+                print(f"🔍 Exploring unknown area {closest_unknown} for new paths")
+                self.plan = path
+                return self.plan.pop(0)
         
         return None
     
@@ -306,6 +520,119 @@ class WumpusAgent:
             self.has_arrow = False
             if percept.scream:
                 print("💀 Wumpus killed!")
+    
+    def reset_for_new_world(self, preserve_learning=True):
+        """Reset agent for new world while optionally preserving learned strategies"""
+        
+        # Always reset world-specific knowledge
+        self.position = (0, 0)
+        self.direction = Direction.EAST
+        self.has_arrow = True
+        self.has_gold = False
+        self.visited_cells = {(0, 0)}
+        self.gold_position = None
+        self.plan = []
+        
+        # Reset knowledge base (forget about dangerous cells in old world)
+        self.kb = KnowledgeBase(self.world_size, self.num_wumpus)
+        self.planner = WumpusPlanner(self.world_size, self.kb)
+        
+        if preserve_learning:
+            # Preserve and improve strategic knowledge
+            self.games_played += 1
+            
+            # Analyze previous game performance to improve strategy
+            self._analyze_game_performance()
+            
+            # Adapt strategy based on experience
+            self._adapt_strategy()
+            
+            print(f"🧠 Agent reset for game #{self.games_played + 1} - Learning preserved!")
+            print(f"🎯 Current strategy: {self.exploration_strategy}, Caution level: {self.adaptive_caution:.2f}")
+        else:
+            # Complete reset - agent forgets everything
+            self.games_played = 0
+            self.successful_strategies = []
+            self.failed_patterns = []
+            self.adaptive_caution = 0.3
+            self.exploration_strategy = "safe_first"
+            print("🔄 Complete agent reset - All learning cleared!")
+    
+    def _analyze_game_performance(self):
+        """Analyze last game to learn successful patterns"""
+        if not self.action_history:
+            return
+        
+        # Analyze action patterns that led to success/failure
+        total_actions = len(self.action_history)
+        exploration_actions = sum(1 for a in self.action_history if a['action'] in [Action.MOVE_FORWARD])
+        caution_actions = sum(1 for a in self.action_history if a['action'] in [Action.TURN_LEFT, Action.TURN_RIGHT])
+        shooting_actions = sum(1 for a in self.action_history if a['action'] == Action.SHOOT)
+        
+        game_stats = {
+            'total_actions': total_actions,
+            'exploration_ratio': exploration_actions / max(total_actions, 1),
+            'caution_ratio': caution_actions / max(total_actions, 1),
+            'shooting_actions': shooting_actions,
+            'found_gold': self.has_gold,
+            'survived': len([a for a in self.action_history if a.get('percept', '') != 'Dead']),
+            'strategy_used': self.exploration_strategy
+        }
+        
+        # Track successful patterns
+        if self.has_gold:
+            self.successful_strategies.append(game_stats)
+            if shooting_actions == 0:
+                print(f"🎯 EXCELLENT: Won without shooting! Score bonus preserved.")
+            else:
+                print(f"📈 Successful strategy recorded: {self.exploration_strategy} (shots: {shooting_actions})")
+        else:
+            self.failed_patterns.append(game_stats)
+            if shooting_actions > 0:
+                print(f"⚠️ Shot {shooting_actions} times but still failed - consider avoiding shooting")
+        
+        # Clear action history for new game
+        self.action_history = []
+    
+    def _adapt_strategy(self):
+        """Adapt exploration strategy based on experience"""
+        if self.games_played < 2:
+            return  # Need some experience first
+        
+        # Analyze success rates of different strategies
+        if self.successful_strategies:
+            # Calculate success rate for each strategy
+            strategy_success = {}
+            for strategy_data in self.successful_strategies:
+                strategy = strategy_data['strategy_used']
+                strategy_success[strategy] = strategy_success.get(strategy, 0) + 1
+            
+            # Find most successful strategy
+            best_strategy = max(strategy_success.keys(), key=lambda x: strategy_success[x])
+            
+            # Gradually shift towards successful strategies
+            if best_strategy != self.exploration_strategy:
+                if self.games_played > 3:  # Only change after gaining some experience
+                    self.exploration_strategy = best_strategy
+                    print(f"🎯 Strategy adapted to: {best_strategy}")
+        
+        # Adapt caution level based on success/failure patterns
+        success_rate = len(self.successful_strategies) / max(self.games_played, 1)
+        
+        if success_rate > 0.7:
+            # High success rate - can be more aggressive
+            self.adaptive_caution = max(0.1, self.adaptive_caution - 0.05)
+            if self.games_played > 5 and self.exploration_strategy == "safe_first":
+                self.exploration_strategy = "cautious"
+        elif success_rate < 0.3:
+            # Low success rate - be more cautious
+            self.adaptive_caution = min(0.8, self.adaptive_caution + 0.1)
+            self.exploration_strategy = "safe_first"
+        
+        # Update planner risk parameters
+        self.risk_tolerance = self.adaptive_caution
+        if hasattr(self.planner, 'unknown_cost'):
+            self.planner.unknown_cost = 10.0 + (self.adaptive_caution * 20.0)
     
     def get_status(self) -> dict:
         """Get current agent status for debugging"""

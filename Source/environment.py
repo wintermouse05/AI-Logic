@@ -72,30 +72,121 @@ class WumpusWorld:
         self.action_log = []
     
     def _generate_world(self):
-        """Generate pits, wumpus, and gold positions"""
-        all_positions = [(x, y) for x in range(self.size) for y in range(self.size)]
+        """Generate pits, wumpus, and gold positions ensuring a winnable path"""
+        max_attempts = 100
+        for attempt in range(max_attempts):
+            self.pits = set()
+            self.wumpus_positions = set()
+            
+            all_positions = [(x, y) for x in range(self.size) for y in range(self.size)]
+            
+            # Remove starting position (0,0) from possible dangerous positions
+            safe_positions = all_positions.copy()
+            safe_positions.remove((0, 0))
+            
+            # Generate pits with reduced probability to ensure more safe paths
+            effective_pit_prob = min(self.pit_probability * 0.7, 0.15)  # Reduce pit probability
+            for pos in safe_positions:
+                if random.random() < effective_pit_prob:
+                    self.pits.add(pos)
+            
+            # Remove pit positions from available positions for wumpus and gold
+            available_positions = [pos for pos in safe_positions if pos not in self.pits]
+            
+            # Place wumpus
+            if len(available_positions) >= self.num_wumpus:
+                self.wumpus_positions = set(random.sample(available_positions, self.num_wumpus))
+                available_positions = [pos for pos in available_positions if pos not in self.wumpus_positions]
+            
+            # Place gold (can be at starting position, but prefer reachable positions)
+            gold_positions = [pos for pos in all_positions if pos not in self.pits and pos not in self.wumpus_positions]
+            if gold_positions:
+                self.gold_position = random.choice(gold_positions)
+            
+            # Check if there's a safe path to gold using BFS
+            if self._has_safe_path_to_gold():
+                return  # Valid world generated
         
-        # Remove starting position (0,0) from possible dangerous positions
-        safe_positions = all_positions.copy()
-        safe_positions.remove((0, 0))
+        # If we can't generate a valid world after max_attempts, create a minimal safe world
+        self._generate_minimal_safe_world()
+    
+    def _has_safe_path_to_gold(self):
+        """Check if there's a safe path from (0,0) to gold using BFS"""
+        if not self.gold_position:
+            return False
+            
+        start = (0, 0)
+        target = self.gold_position
         
-        # Generate pits
-        for pos in safe_positions:
-            if random.random() < self.pit_probability:
-                self.pits.add(pos)
+        if start == target:
+            return True
         
-        # Remove pit positions from available positions for wumpus and gold
-        available_positions = [pos for pos in safe_positions if pos not in self.pits]
+        visited = {start}
+        queue = [start]
         
-        # Place wumpus
-        if len(available_positions) >= self.num_wumpus:
-            self.wumpus_positions = set(random.sample(available_positions, self.num_wumpus))
-            available_positions = [pos for pos in available_positions if pos not in self.wumpus_positions]
+        while queue:
+            x, y = queue.pop(0)
+            
+            # Check all adjacent cells (4-directional movement)
+            for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+                nx, ny = x + dx, y + dy
+                
+                # Check bounds
+                if not (0 <= nx < self.size and 0 <= ny < self.size):
+                    continue
+                
+                # Skip if already visited
+                if (nx, ny) in visited:
+                    continue
+                
+                # Check if this is the target (gold) - gold position should be reachable
+                if (nx, ny) == target:
+                    # Target is reachable if it's not in a pit or with a wumpus
+                    if (nx, ny) not in self.pits and (nx, ny) not in self.wumpus_positions:
+                        return True
+                    continue  # Target is blocked, keep searching
+                
+                # Skip dangerous cells (pits and wumpus positions)
+                if (nx, ny) in self.pits or (nx, ny) in self.wumpus_positions:
+                    continue
+                
+                # Add safe cell to queue for further exploration
+                visited.add((nx, ny))
+                queue.append((nx, ny))
         
-        # Place gold (can be at starting position)
-        gold_positions = [pos for pos in all_positions if pos not in self.pits and pos not in self.wumpus_positions]
-        if gold_positions:
-            self.gold_position = random.choice(gold_positions)
+        return False
+    
+    def _generate_minimal_safe_world(self):
+        """Generate a minimal safe world that's always winnable"""
+        print("Generating minimal safe world (backup)...")
+        
+        self.pits = set()
+        self.wumpus_positions = set()
+        
+        # Create a simple path pattern
+        if self.size >= 4:
+            # Place wumpus in a safe corner, away from main path
+            self.wumpus_positions = {(self.size - 1, self.size - 1)}
+            
+            # Place gold in an accessible location
+            self.gold_position = (2, 0) if self.size > 2 else (1, 0)
+            
+            # Add one or two pits in safe locations that don't block the path
+            if self.size >= 4:
+                # Add pit that doesn't block path to gold
+                self.pits = {(1, 2)} if self.size > 3 else set()
+        
+        elif self.size == 3:
+            # For 3x3 world
+            self.wumpus_positions = {(2, 2)}
+            self.gold_position = (1, 0)
+            self.pits = {(0, 2)}  # One pit that doesn't block path
+        
+        else:
+            # For very small worlds (2x2), keep it minimal
+            self.wumpus_positions = {(1, 1)}
+            self.gold_position = (1, 0)
+            self.pits = set()  # No pits in tiny worlds
     
     def _is_valid_position(self, pos):
         """Check if position is within world boundaries"""
@@ -307,12 +398,18 @@ class WumpusWorld:
             'action_count': self.action_count
         }
     
-    def reset(self, seed=None):
-        """Reset world to initial state"""
+    def reset(self, seed=None, preserve_agent_learning=True):
+        """Reset world to initial state
+        
+        Args:
+            seed: Optional random seed for reproducible worlds
+            preserve_agent_learning: Whether to preserve agent's strategic learning
+        """
         if seed is not None:
             self.seed = seed
             random.seed(seed)
         
+        # Reset world state
         self.pits = set()
         self.wumpus_positions = set()
         self.gold_position = None
@@ -324,8 +421,16 @@ class WumpusWorld:
         self.game_over = False
         self.score = 0
         self.action_count = 0
-        self.visited_cells = {(0, 0)}
+        self.visited_cells = {(0, 0)}  # Clear all colored cells
         self.last_percept = None
         self.action_log = []
         
+        # Generate new world layout
         self._generate_world()
+        
+        # Return information about the reset
+        return {
+            'preserve_learning': preserve_agent_learning,
+            'new_world_generated': True,
+            'start_position': (0, 0)
+        }
