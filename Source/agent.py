@@ -119,7 +119,7 @@ class WumpusAgent:
         return self._choose_safe_random_action()
     
     def _consider_shooting(self) -> Optional[Action]:
-        """Only shoot wumpus as absolute last resort when blocking critical path"""
+        """Shoot wumpus when blocking critical paths or when no safe moves available"""
         if not self.has_arrow:
             return None
             
@@ -127,21 +127,26 @@ class WumpusAgent:
         if not wumpus_locations:
             return None
         
-        # ONLY shoot if wumpus is blocking the ONLY path to gold or escape
-        # Strategy: Avoid shooting unless absolutely necessary to maximize score
-        
-        # Check if wumpus is blocking our only path to gold
+        # Strategy 1: Shoot if wumpus is blocking our only path to gold
         if self.gold_position and not self.has_gold:
             if self._is_wumpus_blocking_only_path_to_gold(wumpus_locations):
+                print("🎯 Shooting wumpus blocking path to gold!")
                 return self._execute_strategic_shot(wumpus_locations)
         
-        # Check if wumpus is blocking our only path to escape (when we have gold)
+        # Strategy 2: Shoot if wumpus is blocking our only path to escape (when we have gold)
         if self.has_gold and self.position != (0, 0):
             if self._is_wumpus_blocking_only_escape_path(wumpus_locations):
+                print("🎯 Shooting wumpus blocking escape path!")
                 return self._execute_strategic_shot(wumpus_locations)
         
-        # Check if we're completely trapped by wumpus with no safe moves
+        # Strategy 3: Shoot if we're completely trapped by wumpus with no safe moves
         if self._is_completely_trapped_by_wumpus(wumpus_locations):
+            print("🎯 Shooting wumpus - completely trapped!")
+            return self._execute_strategic_shot(wumpus_locations)
+        
+        # Strategy 4: NEW - Shoot if no safe exploration options and no alternative paths
+        if self._should_shoot_for_progress(wumpus_locations):
+            print("🎯 Shooting wumpus - no safe alternatives for progress!")
             return self._execute_strategic_shot(wumpus_locations)
         
         # Otherwise, DON'T shoot - find alternative paths or wait
@@ -237,6 +242,41 @@ class WumpusAgent:
         
         print("🚫 Completely trapped by wumpus!")
         return True
+    
+    def _should_shoot_for_progress(self, wumpus_locations: Set[Tuple[int, int]]) -> bool:
+        """Check if shooting is necessary to make progress when no safe options exist"""
+        # Check if we have any safe exploration targets
+        safe_targets = self.planner.find_safe_exploration_targets(
+            self.position, self.visited_cells
+        )
+        
+        # Check if we have any unknown exploration targets that might be safe
+        unknown_targets = self.planner.find_unknown_exploration_targets(
+            self.position, self.visited_cells
+        )
+        
+        # If we have safe targets or unknown targets, don't shoot yet
+        if safe_targets or unknown_targets:
+            return False
+        
+        # Check if shooting a wumpus would open up new exploration possibilities
+        for wumpus_pos in wumpus_locations:
+            if self._is_in_line_of_fire(wumpus_pos):
+                # If we can shoot this wumpus, check if it would help us progress
+                # This is a simplified check - if wumpus is adjacent to unexplored areas
+                x, y = wumpus_pos
+                for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+                    adj_x, adj_y = x + dx, y + dy
+                    if (self._is_valid_position(adj_x, adj_y) and 
+                        (adj_x, adj_y) not in self.visited_cells):
+                        # Shooting this wumpus might open up unexplored areas
+                        return True
+        
+        return False
+    
+    def _is_valid_position(self, x: int, y: int) -> bool:
+        """Check if position is valid within world boundaries"""
+        return 0 <= x < self.world_size and 0 <= y < self.world_size
     
     def _execute_strategic_shot(self, wumpus_locations: Set[Tuple[int, int]]) -> Optional[Action]:
         """Execute strategic shot at blocking wumpus"""
@@ -460,7 +500,7 @@ class WumpusAgent:
         return None
     
     def _choose_safe_random_action(self) -> Action:
-        """Choose a random safe action as fallback"""
+        """Choose a random safe action as fallback, or take calculated risk if no safe options"""
         safe_actions = [Action.TURN_LEFT, Action.TURN_RIGHT]
         
         # Check if forward movement is safe
@@ -468,7 +508,31 @@ class WumpusAgent:
         if forward_pos and forward_pos in self.kb.infer_safe_cells():
             safe_actions.append(Action.MOVE_FORWARD)
         
-        return random.choice(safe_actions)
+        # If we have safe actions, use them
+        if len(safe_actions) > 2 or self.kb.infer_safe_cells():  # More than just turning
+            return random.choice(safe_actions)
+        
+        # If no safe moves and we have arrow, consider shooting as last resort
+        if self.has_arrow:
+            wumpus_locations = self.kb.infer_wumpus_locations()
+            if wumpus_locations:
+                for wumpus_pos in wumpus_locations:
+                    if self._is_in_line_of_fire(wumpus_pos):
+                        # We can shoot a wumpus - this might be better than turning forever
+                        required_dir = self._get_direction_to_target(wumpus_pos)
+                        if required_dir == self.direction:
+                            print("🎯 DESPERATE SHOT - no safe moves available!")
+                            return Action.SHOOT
+                        elif required_dir:
+                            # Turn towards wumpus for next shot opportunity
+                            turn_actions = self._get_turn_actions(required_dir)
+                            if turn_actions:
+                                print(f"🎯 Turning for desperate shot at wumpus {wumpus_pos}")
+                                self.plan = turn_actions + [Action.SHOOT]
+                                return self.plan.pop(0)
+        
+        # Last resort - just turn (agent will keep turning until something changes)
+        return random.choice([Action.TURN_LEFT, Action.TURN_RIGHT])
     
     def _get_forward_position(self) -> Optional[Tuple[int, int]]:
         """Get position if moving forward"""
@@ -520,6 +584,45 @@ class WumpusAgent:
             self.has_arrow = False
             if percept.scream:
                 print("💀 Wumpus killed!")
+                # Update knowledge base: wumpus is dead, cell is now safe
+                self._update_knowledge_after_wumpus_kill()
+    
+    def _update_knowledge_after_wumpus_kill(self):
+        """Update knowledge base after killing a wumpus"""
+        # Find which wumpus was killed (the one in line of fire)
+        killed_wumpus_pos = None
+        
+        # Check all positions in the line of fire
+        x, y = self.position
+        dx, dy = self.direction.value
+        
+        # Check each cell in the shooting direction until we hit a wall
+        current_x, current_y = x + dx, y + dy
+        while (0 <= current_x < self.world_size and 0 <= current_y < self.world_size):
+            check_pos = (current_x, current_y)
+            
+            # Check if there was a wumpus at this position
+            wumpus_prop = self.kb._create_proposition("Wumpus", current_x, current_y)
+            if self.kb.is_known_true(wumpus_prop):
+                killed_wumpus_pos = check_pos
+                break
+                
+            # Move to next position in line of fire
+            current_x += dx
+            current_y += dy
+        
+        if killed_wumpus_pos:
+            print(f"🎯 Wumpus eliminated at {killed_wumpus_pos}")
+            
+            # Use the knowledge base method to properly eliminate the wumpus
+            self.kb.eliminate_wumpus(killed_wumpus_pos)
+            
+            # Clear any outdated plans that were avoiding this area
+            if self.plan:
+                print("🔄 Replanning due to wumpus elimination...")
+                self.plan = []
+        else:
+            print("🤔 Heard scream but couldn't identify which wumpus was killed")
     
     def reset_for_new_world(self, preserve_learning=True):
         """Reset agent for new world while optionally preserving learned strategies"""
@@ -647,7 +750,22 @@ class WumpusAgent:
             'knowledge_summary': self.kb.get_knowledge_summary()
         }
 
+    def export_knowledge_base(self, file_path: str):
+        """Export the agent's current knowledge base summary to a text file."""
+        summary = self.kb.get_knowledge_summary()
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write("Knowledge Base Summary\n")
+            f.write("======================\n\n")
+            for key, value in summary.items():
+                f.write(f"{key}:\n")
+                if isinstance(value, list):
+                    for item in value:
+                        f.write(f"  {item}\n")
+                else:
+                    f.write(f"  {value}\n")
+                f.write("\n")
 
+                
 class RandomAgent:
     """Random agent baseline for comparison"""
     

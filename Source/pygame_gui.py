@@ -36,6 +36,7 @@ class Colors:
     GREEN = (0, 255, 0)
     BLUE = (0, 0, 255)
     YELLOW = (255, 255, 0)
+    DARK_YELLOW = (139, 139, 0)
     ORANGE = (255, 165, 0)
     PURPLE = (128, 0, 128)
     CYAN = (0, 255, 255)
@@ -67,6 +68,11 @@ class WumpusWorldPygameGUI:
         self.screen = pygame.display.set_mode((self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
         pygame.display.set_caption("🏰 Wumpus World - AI Agent")
         self.clock = pygame.time.Clock()
+        
+        # Load background images
+        self.menu_background = None
+        self.game_background = None
+        self.load_backgrounds()
         
         # Fonts
         self.font_large = pygame.font.Font(None, 36)
@@ -107,15 +113,44 @@ class WumpusWorldPygameGUI:
         
         self.setup_ui_elements()
     
+    def load_backgrounds(self):
+        """Load and scale background images"""
+        try:
+            # Load menu background (thumbnail.png)
+            menu_bg_path = os.path.join(current_dir, "background", "thumbnail.png")
+            if os.path.exists(menu_bg_path):
+                menu_bg = pygame.image.load(menu_bg_path)
+                # Scale to fit screen while maintaining aspect ratio
+                self.menu_background = pygame.transform.scale(menu_bg, (self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
+                print("✅ Menu background loaded successfully")
+            else:
+                print("⚠️ Menu background not found")
+                
+            # Load game background (background.png)
+            game_bg_path = os.path.join(current_dir, "background", "background.png")
+            if os.path.exists(game_bg_path):
+                game_bg = pygame.image.load(game_bg_path)
+                # Scale to fit screen while maintaining aspect ratio
+                self.game_background = pygame.transform.scale(game_bg, (self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
+                print("✅ Game background loaded successfully")
+            else:
+                print("⚠️ Game background not found")
+                
+        except Exception as e:
+            print(f"⚠️ Error loading backgrounds: {e}")
+            self.menu_background = None
+            self.game_background = None
+    
     def setup_ui_elements(self):
         """Setup UI buttons and controls"""
         button_width = 120
         button_height = 40
         
-        # Main menu buttons
-        self.buttons['start'] = pygame.Rect(50, 200, button_width, button_height)
-        self.buttons['experiment'] = pygame.Rect(50, 260, button_width, button_height)
-        self.buttons['quit'] = pygame.Rect(50, 320, button_width, button_height)
+        # Main menu buttons - moved down and centered
+        center_x = self.WINDOW_WIDTH // 2
+        self.buttons['start'] = pygame.Rect(center_x - 180, 550, button_width, button_height)
+        self.buttons['experiment'] = pygame.Rect(center_x - 60, 550, button_width, button_height)
+        self.buttons['quit'] = pygame.Rect(center_x + 60, 550, button_width, button_height)
         
         # Game control buttons
         self.buttons['pause'] = pygame.Rect(50, 150, button_width, button_height)
@@ -283,11 +318,9 @@ class WumpusWorldPygameGUI:
         
         self.state = GameState.PLAYING
         self.simulation_running = True
-        
         # Start simulation thread
         self.simulation_thread = threading.Thread(target=self.simulation_loop, daemon=True)
         self.simulation_thread.start()
-        
         self.add_log_message(f"🎮 Game started! {self.world_size}x{self.world_size} world")
         self.add_log_message("🏠 Agent starts at position (0,0) - bottom-left corner")
         self.add_log_message("🎯 World generated with guaranteed winnable path to gold!")
@@ -312,25 +345,111 @@ class WumpusWorldPygameGUI:
             self.execute_step()
     
     def reset_game(self):
-        """Reset the current game"""
+        """Smart reset - if lost, replay same world; if won, generate new world"""
         self.simulation_running = False
         
         if self.world and self.agent:
-            # Reset world (generates new map, clears visited cells)
-            reset_info = self.world.reset(preserve_agent_learning=True)
+            # Check game result using world state
+            state = self.world.get_world_state()
             
-            # Reset agent appropriately
-            if hasattr(self.agent, 'reset_for_new_world'):
-                self.agent.reset_for_new_world(preserve_learning=True)
-                self.add_log_message("🧠 Smart reset: New world generated, learning preserved")
-            elif hasattr(self.agent, 'reset'):
-                self.agent.reset()
-                self.add_log_message("🔄 Agent reset to initial state")
+            # Agent won if: alive + has gold + successfully escaped (at start position)
+            game_won = (state['agent_alive'] and 
+                       state['agent_has_gold'] and 
+                       state['agent_position'] == (0, 0) and
+                       state['game_over'])
             
-            # Reset GUI state
+            # Agent lost if: died OR game over without winning
+            game_lost = (not state['agent_alive'] or 
+                        (state['game_over'] and not game_won))
+            
+            if game_lost:
+                # Agent LOST - replay SAME WORLD
+                # Save current world configuration before any reset
+                saved_pits = set(self.world.pits)
+                saved_wumpus = set(self.world.wumpus_positions)  
+                saved_gold = self.world.gold_position
+                saved_visited = set(self.world.visited_cells)
+                
+                # Check where agent died and mark that position as dangerous
+                death_position = state['agent_position']
+                died_from_pit = death_position in saved_pits
+                died_from_wumpus = death_position in saved_wumpus
+                
+                # Only reset agent position and state, keep world layout
+                self.world.agent_position = (0, 0)
+                self.world.agent_direction = Direction.EAST
+                self.world.agent_has_arrow = True
+                self.world.agent_has_gold = False
+                self.world.agent_alive = True
+                self.world.game_over = False
+                self.world.score = 0
+                self.world.action_count = 0
+                self.world.last_percept = None
+                self.world.action_log = []
+                
+                # Keep world layout and visited cells (keep colors!)
+                self.world.pits = saved_pits
+                self.world.wumpus_positions = saved_wumpus
+                self.world.gold_position = saved_gold
+                self.world.visited_cells = saved_visited  # Keep all colored cells!
+                
+                # Reset agent position but preserve knowledge
+                if hasattr(self.agent, 'reset_for_new_world'):
+                    # Only reset position/direction, keep all learning
+                    self.agent.position = (0, 0)
+                    self.agent.direction = Direction.EAST
+                    self.agent.has_arrow = True
+                    self.agent.has_gold = False
+                    self.agent.plan = []
+                    # DON'T reset knowledge base - keep all learning!
+                    
+                    # Mark death position as dangerous in knowledge base
+                    agent_kb = getattr(self.agent, 'kb', None)
+                    if agent_kb:
+                        if died_from_pit:
+                            # Add definitive knowledge that this cell has a pit
+                            pit_prop_name = f"Pit_{death_position[0]}_{death_position[1]}"
+                            from knowledge_base import Proposition
+                            agent_kb.add_fact(Proposition(pit_prop_name))
+                            self.add_log_message(f"💀 Agent chết vì rơi xuống hố tại {death_position}")
+                            self.add_log_message(f"🔴 Đánh dấu {death_position} là HỐ CHẾT NGƯỜI!")
+                        elif died_from_wumpus:
+                            # Add definitive knowledge that this cell has a wumpus
+                            wumpus_prop_name = f"Wumpus_{death_position[0]}_{death_position[1]}"
+                            from knowledge_base import Proposition
+                            agent_kb.add_fact(Proposition(wumpus_prop_name))
+                            self.add_log_message(f"💀 Agent chết vì bị Wumpus ăn thịt tại {death_position}")
+                            self.add_log_message(f"🔴 Đánh dấu {death_position} là WUMPUS CHẾT NGƯỜI!")
+                        
+                        # Run inference to update knowledge
+                        agent_kb.forward_chain()
+                
+                self.add_log_message("🔄 Smart reset: THUA - Chơi lại chính thế giới này!")
+                self.add_log_message("🧠 Giữ nguyên: vị trí pit/wumpus/vàng, màu các ô, knowledge base")
+                self.add_log_message("📍 Agent quay về (0,0), thử chinh phục lại!")
+                
+            else:
+                # Agent WON or manual reset - generate completely NEW world
+                reset_info = self.world.reset()
+                
+                # Reset agent for new world but preserve learning
+                if hasattr(self.agent, 'reset_for_new_world'):
+                    self.agent.reset_for_new_world(preserve_learning=True)
+                    self.add_log_message("🏆 Smart reset: THẮNG! Thế giới mới, giữ knowledge base")
+                else:
+                    self.add_log_message("🧠 Smart reset: Thế giới mới được tạo")
+                
+                self.add_log_message(f"🗺️ Thế giới {self.world_size}x{self.world_size} hoàn toàn mới")
+                self.add_log_message("🎯 Bắt đầu thử thách mới với kinh nghiệm cũ!")
+            
+            # Reset GUI state and restart simulation
             self.state = GameState.PLAYING
-            self.add_log_message(f"�️ New {self.world_size}x{self.world_size} world generated")
-            self.add_log_message("🎯 All cell colors cleared, new exploration begins!")
+            self.simulation_running = True
+            
+            # Start new simulation thread
+            self.simulation_thread = threading.Thread(target=self.simulation_loop, daemon=True)
+            self.simulation_thread.start()
+            self.add_log_message("▶️ Game tự động bắt đầu chạy!")
             
         else:
             self.add_log_message("⚠️ No active game to reset")
@@ -341,20 +460,26 @@ class WumpusWorldPygameGUI:
         
         if self.world and self.agent:
             # Reset world (generates new map, clears visited cells)
-            reset_info = self.world.reset(preserve_agent_learning=False)
+            reset_info = self.world.reset()
             
             # Complete agent reset (forgets all learning)
             if hasattr(self.agent, 'reset_for_new_world'):
                 self.agent.reset_for_new_world(preserve_learning=False)
-                self.add_log_message("🧠 Complete reset: Agent forgets all learning")
-            elif hasattr(self.agent, 'reset'):
-                self.agent.reset()
-                self.add_log_message("🔄 Agent completely reset")
+                self.add_log_message("🧠 Full reset: Xóa toàn bộ knowledge base!")
+            else:
+                self.add_log_message("🔄 Full reset: Agent reset hoàn toàn")
             
-            # Reset GUI state
+            # Reset GUI state and restart simulation
             self.state = GameState.PLAYING
-            self.add_log_message(f"🗺️ Fresh start: New world, fresh agent mind")
-            self.add_log_message("🎯 Agent starts learning from scratch!")
+            self.simulation_running = True
+            
+            # Start new simulation thread
+            self.simulation_thread = threading.Thread(target=self.simulation_loop, daemon=True)
+            self.simulation_thread.start()
+            
+            self.add_log_message("🗺️ Thế giới mới + trí nhớ trống!")
+            self.add_log_message("🎯 Agent bắt đầu học từ con số 0!")
+            self.add_log_message("▶️ Game tự động bắt đầu chạy!")
             
         else:
             self.add_log_message("⚠️ No active game to reset")
@@ -481,7 +606,17 @@ class WumpusWorldPygameGUI:
     
     def draw_menu(self):
         """Draw the main menu"""
-        self.screen.fill(Colors.BLACK)
+        # Draw menu background first
+        if self.menu_background:
+            self.screen.blit(self.menu_background, (0, 0))
+        else:
+            self.screen.fill(Colors.BLACK)  # Fallback
+        
+        # Add semi-transparent overlay for better text readability
+        overlay = pygame.Surface((self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
+        overlay.set_alpha(120)  # Semi-transparent
+        overlay.fill(Colors.BLACK)
+        self.screen.blit(overlay, (0, 0))
         
         # Title
         title = self.font_large.render("🏰 Wumpus World - AI Agent", True, Colors.WHITE)
@@ -543,7 +678,17 @@ class WumpusWorldPygameGUI:
     
     def draw_game(self):
         """Draw the game screen"""
-        self.screen.fill(Colors.BLACK)
+        # Draw game background first
+        if self.game_background:
+            self.screen.blit(self.game_background, (0, 0))
+        else:
+            self.screen.fill(Colors.BLACK)  # Fallback
+        
+        # Add semi-transparent overlay for better visibility
+        overlay = pygame.Surface((self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
+        overlay.set_alpha(80)  # Light overlay to make UI elements more visible
+        overlay.fill(Colors.BLACK)
+        self.screen.blit(overlay, (0, 0))
         
         if not self.world:
             return
@@ -596,11 +741,43 @@ class WumpusWorldPygameGUI:
                 elif hasattr(self.agent, 'kb'):
                     safe_cells = self.agent.kb.infer_safe_cells()
                     dangerous_cells = self.agent.kb.infer_dangerous_cells()
+                    knowledge = self.agent.kb.get_knowledge_summary()
+                    certain_wumpus = knowledge.get('certain_wumpus', set())
+                    certain_pits = knowledge.get('certain_pits', set())
+                    possible_wumpus = knowledge.get('possible_wumpus', set())
+                    possible_pits = knowledge.get('possible_pits', set())
                     
-                    if pos in safe_cells:
-                        bg_color = Colors.DARK_GREEN if pos in state['visited_cells'] else (0, 50, 0)
-                    elif pos in dangerous_cells:
+                    # Priority 1: Certain dangerous cells (confirmed wumpus or pit) - RED
+                    if pos in certain_wumpus or pos in certain_pits:
                         bg_color = Colors.DARK_RED
+                    # Priority 2: Safe cells - GREEN variants
+                    elif pos in safe_cells:
+                        bg_color = Colors.DARK_GREEN if pos in state['visited_cells'] else (0, 50, 0)
+                    # Priority 3: Possible dangerous cells (has warning signs) - YELLOW
+                    elif pos in possible_wumpus or pos in possible_pits or pos in dangerous_cells:
+                        bg_color = Colors.DARK_YELLOW  # Dark yellow for suspected danger
+                    # Priority 4: Visited cells with percepts (stench/breeze detected) - YELLOW
+                    elif pos in state['visited_cells'] and hasattr(self.agent, 'kb'):
+                        stench_prop = f"Stench_{pos[0]}_{pos[1]}"
+                        breeze_prop = f"Breeze_{pos[0]}_{pos[1]}"
+                        if any(fact.name == stench_prop for fact in self.agent.kb.facts) or \
+                           any(fact.name == breeze_prop for fact in self.agent.kb.facts):
+                            bg_color = Colors.DARK_YELLOW  # Dark yellow for warning signs
+                    # Priority 5: Adjacent to cells with percepts - YELLOW for potential danger
+                    elif hasattr(self.agent, 'kb'):
+                        # Check if this cell is adjacent to any cell with stench/breeze
+                        adjacent_to_danger = False
+                        for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+                            adj_pos = (pos[0] + dx, pos[1] + dy)
+                            if adj_pos in state['visited_cells']:
+                                stench_prop = f"Stench_{adj_pos[0]}_{adj_pos[1]}"
+                                breeze_prop = f"Breeze_{adj_pos[0]}_{adj_pos[1]}"
+                                if any(fact.name == stench_prop for fact in self.agent.kb.facts) or \
+                                   any(fact.name == breeze_prop for fact in self.agent.kb.facts):
+                                    adjacent_to_danger = True
+                                    break
+                        if adjacent_to_danger and pos not in safe_cells:
+                            bg_color = Colors.DARK_YELLOW  # Yellow for potential danger
                 
                 pygame.draw.rect(self.screen, bg_color, cell_rect)
                 pygame.draw.rect(self.screen, Colors.WHITE, cell_rect, 1)
@@ -675,17 +852,7 @@ class WumpusWorldPygameGUI:
                 else:
                     symbols.append(("🕳️", Colors.BROWN))
         
-        # Show percepts for visited cells
-        if pos in state['visited_cells'] and not self.show_hidden:
-            if hasattr(self.agent, 'kb'):
-                # Check for stench and breeze in knowledge base
-                stench_prop = f"Stench_{pos[0]}_{pos[1]}"
-                breeze_prop = f"Breeze_{pos[0]}_{pos[1]}"
-                
-                if any(fact.name == stench_prop for fact in self.agent.kb.facts):
-                    symbols.append(("💨", Colors.GREEN))
-                if any(fact.name == breeze_prop for fact in self.agent.kb.facts):
-                    symbols.append(("🌪️", Colors.CYAN))
+
         
         # Draw symbols
         if len(symbols) == 1:
@@ -720,12 +887,7 @@ class WumpusWorldPygameGUI:
                 self.draw_emoji_text("💀", center_x, center_y, 32)
                 # Add red overlay to indicate death
                 pygame.draw.circle(self.screen, (255, 0, 0, 100), (center_x, center_y), cell_size // 3, 3)
-            # Always return to prevent other sprites from overlaying agent
-            return
-        
-        # Draw visited indicator
-        if pos in state['visited_cells'] and pos != state['agent_position']:
-            pygame.draw.circle(self.screen, Colors.BLUE, (cell_x + 5, cell_y + 5), 3)
+
     
     def draw_emoji_text(self, text, x, y, size):
         """Draw text (including emojis) centered at position"""
@@ -805,7 +967,17 @@ class WumpusWorldPygameGUI:
     
     def draw_experiment_screen(self):
         """Draw experiment screen"""
-        self.screen.fill(Colors.BLACK)
+        # Draw game background
+        if self.game_background:
+            self.screen.blit(self.game_background, (0, 0))
+        else:
+            self.screen.fill(Colors.BLACK)
+        
+        # Add overlay for better text visibility
+        overlay = pygame.Surface((self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
+        overlay.set_alpha(150)
+        overlay.fill(Colors.BLACK)
+        self.screen.blit(overlay, (0, 0))
         
         title = self.font_large.render("🧪 Running Experiment...", True, Colors.WHITE)
         title_rect = title.get_rect(center=(self.WINDOW_WIDTH // 2, self.WINDOW_HEIGHT // 2 - 50))

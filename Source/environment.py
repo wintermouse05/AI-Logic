@@ -85,10 +85,13 @@ class WumpusWorld:
             safe_positions.remove((0, 0))
             
             # Generate pits with reduced probability to ensure more safe paths
-            effective_pit_prob = min(self.pit_probability * 0.7, 0.15)  # Reduce pit probability
-            for pos in safe_positions:
-                if random.random() < effective_pit_prob:
-                    self.pits.add(pos)
+            # Determine number of pits based on pit_probability and total positions
+            num_pits = int(self.pit_probability * len(safe_positions))
+            # Randomly select pit positions (excluding (0,0))
+            if num_pits > 0:
+                self.pits = set(random.sample(safe_positions, min(num_pits, len(safe_positions))))
+            else:
+                self.pits = set()
             
             # Remove pit positions from available positions for wumpus and gold
             available_positions = [pos for pos in safe_positions if pos not in self.pits]

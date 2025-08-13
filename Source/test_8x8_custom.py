@@ -55,34 +55,34 @@ class Test8x8WumpusWorld(WumpusWorld):
         print("\n🗺️  Current World State:")
         
         # Print grid from top to bottom (correct orientation)
-        for y in range(7, -1, -1):
+        for y in range(WORLD_SIZE, -1, -1):
             row = []
-            for x in range(8):
+            for x in range(WORLD_SIZE):
                 pos = (x, y)
-                cell = "."
+                cell = ". "
                 
                 if pos == self.agent_position:
                     if self.agent_alive:
-                        cell = "🤖"  # Living agent
+                        cell = "🤖 "  # Living agent
                     else:
-                        cell = "💀"  # Dead agent
+                        cell = "💀 "  # Dead agent
                 elif pos == self.gold_position:
                     if self.agent_has_gold:
-                        cell = "📦"  # Gold taken
+                        cell = "📦 "  # Gold taken
                     else:
-                        cell = "💰"  # Gold available
+                        cell = "💰 "  # Gold available
                 elif pos in self.pits:
                     cell = "🕳️ "
                 elif pos in self.wumpus_positions:
-                    cell = "👹"
+                    cell = "👹 "
                 elif pos in self.visited_cells:
-                    cell = "✓"  # Visited safe cell
+                    cell = "✓ "  # Visited safe cell
                 
                 row.append(cell)
             
             print(f"Y{y}: " + " ".join(f"{cell:2}" for cell in row))
         
-        print("    " + " ".join([f"X{i:2}" for i in range(8)]))
+        print("    " + " ".join([f"X{i}" for i in range(8)]))
         print()
 
 
@@ -130,11 +130,12 @@ def test_intelligent_agent():
         })
         
         # Print key steps
-        if steps < 10 or steps % 10 == 0 or world.game_over:
+        #if steps < 10 or steps % 10 == 0 or world.game_over:
+        if steps < 50:
             print(f"Step {steps + 1:3d}: {current_pos} -> {action.value}")
             if percept and percept != []:
                 print(f"         Percept: {percept}")
-        
+            
         steps += 1
     
     # Final results
@@ -179,6 +180,9 @@ def test_intelligent_agent():
     if final_state['agent_alive'] and final_state['agent_has_gold']:
         efficiency = (optimal_path_length / steps) * 100
         print(f"   Path efficiency: {efficiency:.1f}% (optimal: {optimal_path_length} steps)")
+    
+    # Export knowledge base
+    agent.export_knowledge_base("knowledge_base.txt")
     
     return final_state['agent_alive'] and final_state['agent_has_gold']
 
@@ -225,19 +229,19 @@ if __name__ == "__main__":
     intelligent_success = test_intelligent_agent()
     
     # Test random agent
-    random_success = test_random_agent()
+    #random_success = test_random_agent()
     
     # Final comparison
     print("\n" + "=" * 60)
     print("📈 COMPARISON SUMMARY")
     print("=" * 60)
     print(f"Intelligent Agent: {'✅ SUCCESS' if intelligent_success else '❌ FAILED'}")
-    print(f"Random Agent:      {'✅ SUCCESS' if random_success else '❌ FAILED'}")
+    #print(f"Random Agent:      {'✅ SUCCESS' if random_success else '❌ FAILED'}")
     
-    if intelligent_success and not random_success:
-        print("\n🎉 Perfect! Intelligent agent succeeded where random agent failed!")
-        print("   This demonstrates the effectiveness of logical reasoning.")
-    elif intelligent_success:
-        print("\n✅ Intelligent agent successfully completed the mission!")
-    else:
-        print("\n⚠️  Map may be challenging - consider adjusting difficulty.")
+    # if intelligent_success and not random_success:
+    #     print("\n🎉 Perfect! Intelligent agent succeeded where random agent failed!")
+    #     print("   This demonstrates the effectiveness of logical reasoning.")
+    # elif intelligent_success:
+    #     print("\n✅ Intelligent agent successfully completed the mission!")
+    # else:
+    #     print("\n⚠️  Map may be challenging - consider adjusting difficulty.")

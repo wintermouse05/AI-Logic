@@ -116,6 +116,7 @@ class KnowledgeBase:
     
     def add_fact(self, fact: Proposition):
         """Add a known fact to the knowledge base"""
+        #print(f"[KB] Adding fact: {fact}")
         self.facts.add(fact)
     
     def add_negative_fact(self, fact: Proposition):
@@ -213,9 +214,14 @@ class KnowledgeBase:
             for y in range(self.world_size):
                 pit_prop = self._create_proposition("Pit", x, y)
                 wumpus_prop = self._create_proposition("Wumpus", x, y)
+                safe_prop = self._create_proposition("Safe", x, y)
                 
                 # Cell is dangerous if we know there's a pit or wumpus
                 if self.is_known_true(pit_prop) or self.is_known_true(wumpus_prop):
+                    dangerous_cells.add((x, y))
+                
+                # Cell is also dangerous if we explicitly know it's not safe
+                elif self.is_known_false(safe_prop):
                     dangerous_cells.add((x, y))
         
         return dangerous_cells
@@ -337,17 +343,42 @@ class KnowledgeBase:
                 # then the remaining cell must have a pit
                 elif self.is_known_true(breeze_prop):
                     unknown_cells = []
+                    known_pit_free_cells = []
+                    
                     for adj_x, adj_y in adjacent_cells:
                         pit_prop = self._create_proposition("Pit", adj_x, adj_y)
                         if self.is_unknown(pit_prop):
                             unknown_cells.append((adj_x, adj_y))
+                        elif self.is_known_false(pit_prop):
+                            known_pit_free_cells.append((adj_x, adj_y))
                     
-                    if len(unknown_cells) == 1:
+                    # Only conclude the unknown cell has a pit if:
+                    # 1. There's exactly one unknown cell, AND
+                    # 2. All other adjacent cells are confirmed pit-free
+                    if (len(unknown_cells) == 1 and 
+                        len(known_pit_free_cells) == len(adjacent_cells) - 1):
+                        
                         adj_x, adj_y = unknown_cells[0]
                         pit_prop = self._create_proposition("Pit", adj_x, adj_y)
                         self.add_fact(pit_prop)
-                        changed = True
-        
+                        changed = True  
+
+                    # Special case: If there are 2 unknown cells and both breeze and stench are present,
+                    # we can infer that one cell has a pit and the other has a wumpus
+                    elif (len(unknown_cells) == 2 and 
+                          len(known_pit_free_cells) == len(adjacent_cells) - 2):
+                        
+                        stench_prop = self._create_proposition("Stench", x, y)
+                        if self.is_known_true(stench_prop):
+                            # Both breeze and stench are present, so one unknown cell has pit, other has wumpus
+                            # We can't determine which is which without more information, but we know
+                            # that these cells are dangerous
+                            for adj_x, adj_y in unknown_cells:
+                                safe_prop = self._create_proposition("Safe", adj_x, adj_y)
+                                if not self.is_known_false(safe_prop):
+                                    self.add_negative_fact(safe_prop)
+                                    changed = True
+                    
         return changed
     
     def _apply_stench_rules(self) -> bool:
@@ -377,17 +408,42 @@ class KnowledgeBase:
                 # then the remaining cell must have a wumpus
                 elif self.is_known_true(stench_prop):
                     unknown_cells = []
+                    known_wumpus_free_cells = []
+                    
                     for adj_x, adj_y in adjacent_cells:
                         wumpus_prop = self._create_proposition("Wumpus", adj_x, adj_y)
                         if self.is_unknown(wumpus_prop):
                             unknown_cells.append((adj_x, adj_y))
+                        elif self.is_known_false(wumpus_prop):
+                            known_wumpus_free_cells.append((adj_x, adj_y))
                     
-                    if len(unknown_cells) == 1:
+                    # Only conclude the unknown cell has a wumpus if:
+                    # 1. There's exactly one unknown cell, AND
+                    # 2. All other adjacent cells are confirmed wumpus-free
+                    if (len(unknown_cells) == 1 and 
+                        len(known_wumpus_free_cells) == len(adjacent_cells) - 1):
+                        
                         adj_x, adj_y = unknown_cells[0]
                         wumpus_prop = self._create_proposition("Wumpus", adj_x, adj_y)
                         self.add_fact(wumpus_prop)
                         changed = True
-        
+                    
+                    # Special case: If there are 2 unknown cells and both stench and breeze are present,
+                    # we can infer that one cell has a wumpus and the other has a pit
+                    elif (len(unknown_cells) == 2 and 
+                          len(known_wumpus_free_cells) == len(adjacent_cells) - 2):
+                        
+                        breeze_prop = self._create_proposition("Breeze", x, y)
+                        if self.is_known_true(breeze_prop):
+                            # Both stench and breeze are present, so one unknown cell has wumpus, other has pit
+                            # We can't determine which is which without more information, but we know
+                            # that these cells are dangerous
+                            for adj_x, adj_y in unknown_cells:
+                                safe_prop = self._create_proposition("Safe", adj_x, adj_y)
+                                if not self.is_known_false(safe_prop):
+                                    self.add_negative_fact(safe_prop)
+                                    changed = True
+                    
         return changed
     
     def _apply_safety_rules(self) -> bool:
