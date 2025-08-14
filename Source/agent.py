@@ -124,6 +124,29 @@ class WumpusAgent:
                 self.plan = return_plan + [Action.CLIMB_OUT]
                 return self.plan.pop(0)
         
+        # Safety-first policy at start: if stench at (0,0), prefer shooting
+        if self.has_arrow and self.position == (0, 0):
+            stench_prop = self.kb._create_proposition("Stench", 0, 0)
+            if self.kb.is_known_true(stench_prop):
+                # If one adjacent direction is known wumpus-free, face the other before shooting
+                right_prop = self.kb._create_proposition("Wumpus", 1, 0)  # (1,0)
+                up_prop = self.kb._create_proposition("Wumpus", 0, 1)   # (0,1)
+                # If (1,0) known false, face NORTH; if (0,1) known false, face EAST; else shoot current dir
+                if self.kb.is_known_false(right_prop) and self.direction != Direction.NORTH:
+                    print("🛡️ Stench at start; (1,0) clear → turning NORTH to shoot (0,1)")
+                    turn_actions = self._get_turn_actions(Direction.NORTH)
+                    if turn_actions:
+                        self.plan = turn_actions + [Action.SHOOT]
+                        return self.plan.pop(0)
+                if self.kb.is_known_false(up_prop) and self.direction != Direction.EAST:
+                    print("🛡️ Stench at start; (0,1) clear → turning EAST to shoot (1,0)")
+                    turn_actions = self._get_turn_actions(Direction.EAST)
+                    if turn_actions:
+                        self.plan = turn_actions + [Action.SHOOT]
+                        return self.plan.pop(0)
+                print("🛡️ Start cell has stench → shoot now to avoid -1000 risk")
+                return Action.SHOOT
+
         # If we know gold location, plan to get it
         if self.gold_position and not self.has_gold:
             print(f"🗺️ Planning path to gold at {self.gold_position}...")
@@ -139,6 +162,15 @@ class WumpusAgent:
         if next_action:
             return next_action
         
+        # General stench heuristic: if stench here, exactly 2 adjacent unknown wumpus cells,
+        # and there are no safe exploration targets, consider shooting
+        if self.has_arrow:
+            stench_prop_here = self.kb._create_proposition("Stench", self.position[0], self.position[1])
+            if self.kb.is_known_true(stench_prop_here):
+                shoot_action = self._consider_shoot_under_stench_two_unknown()
+                if shoot_action:
+                    return shoot_action
+
         # Try to find alternative paths around wumpus
         alternative_action = self._find_alternative_path()
         if alternative_action:
@@ -152,6 +184,60 @@ class WumpusAgent:
         
         # Fallback: random safe action
         return self._choose_safe_random_action()
+
+    def _consider_shoot_under_stench_two_unknown(self) -> Optional[Action]:
+        """If current cell has stench, and exactly two adjacent cells are unknown for wumpus,
+        and there are no safe exploration targets, prepare a shot toward an adjacent candidate."""
+        # Check absence of safe exploration targets
+        safe_targets = self.planner.find_safe_exploration_targets(self.position, self.visited_cells)
+        if safe_targets:
+            return None
+
+        x, y = self.position
+        adjacent = []
+        for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < self.world_size and 0 <= ny < self.world_size:
+                adjacent.append((nx, ny))
+
+        # Find unknown wumpus candidates among adjacent cells
+        unknown_candidates: List[Tuple[int, int]] = []
+        for ax, ay in adjacent:
+            w_prop = self.kb._create_proposition("Wumpus", ax, ay)
+            if self.kb.is_unknown(w_prop):
+                unknown_candidates.append((ax, ay))
+
+        # Only act when exactly two unknowns (classic ambiguity); otherwise skip
+        if len(unknown_candidates) != 2:
+            return None
+
+        # Prefer to shoot along current facing if one candidate lies forward
+        forward = self._get_forward_position()
+        if forward and forward in unknown_candidates:
+            print("🎯 Stench, 2 unknown adjacents, no safe targets → shoot forward")
+            return Action.SHOOT
+
+        # Otherwise, turn to face the closest candidate (adjacent so both equal; choose minimal turns)
+        # Compute required direction to each candidate
+        best_plan: Optional[List[Action]] = None
+        for candidate in unknown_candidates:
+            required_dir = self._get_direction_to_target(candidate)
+            if required_dir and required_dir != self.direction:
+                turn_actions = self._get_turn_actions(required_dir)
+                if turn_actions:
+                    plan = turn_actions + [Action.SHOOT]
+                    if best_plan is None or len(plan) < len(best_plan):
+                        best_plan = plan
+            elif required_dir == self.direction:
+                # Already facing; just shoot
+                return Action.SHOOT
+
+        if best_plan:
+            print(f"🎯 Stench, 2 unknown adjacents, no safe targets → turning then shooting")
+            self.plan = best_plan
+            return self.plan.pop(0)
+
+        return None
     
     def _consider_shooting(self) -> Optional[Action]:
         """Shoot wumpus when blocking critical paths or when no safe moves available"""
@@ -620,11 +706,16 @@ class WumpusAgent:
             # Track shooting position and direction for stench disappearance detection
             self.last_shooting_position = self.position
             self.last_shooting_direction = self.direction
-            
+
             if percept.scream:
                 print("💀 Wumpus killed!")
                 # Update knowledge base: wumpus is dead, cell is now safe
+                self.plan = [Action.MOVE_FORWARD]
                 self._update_knowledge_after_wumpus_kill()
+            else:
+                # Missed shot → mark the ray as wumpus-free in KB
+                # print("❌ Shot missed - no wumpus hit!")
+                self.kb.handle_shot_miss(self.position, self.direction)
     
     def _update_knowledge_after_wumpus_kill(self):
         """Update knowledge base after killing a wumpus"""
@@ -656,25 +747,10 @@ class WumpusAgent:
             # Use the knowledge base method to properly eliminate the wumpus
             self.kb.eliminate_wumpus(killed_wumpus_pos)
             
-            # Plan to advance into the cleared cell so we continue exploring
-            fx, fy = self.position[0] + dx, self.position[1] + dy
-            if (fx, fy) == killed_wumpus_pos:
-                # Immediate forward step reaches the cleared cell
-                self.plan = [Action.MOVE_FORWARD]
-                print(f"➡️ Advancing into cleared cell {killed_wumpus_pos}")
-            else:
-                # Plan a path directly to the cleared wumpus cell
-                path_to_cleared = self.planner.find_path_to_goal(
-                    self.position, self.direction, [killed_wumpus_pos],
-                )
-                if path_to_cleared:
-                    self.plan = path_to_cleared
-                    print(f"🧭 Planning path into cleared cell {killed_wumpus_pos}")
+            # Always plan to move forward into the cleared cell
+            # This ensures we continue exploring the area that was previously blocked
             
-            # Clear any outdated plans that were avoiding this area
-            if self.plan:
-                print("🔄 Replanning due to wumpus elimination...")
-                # keep the new plan we just set
+            print(f"➡️ Planning to advance into cleared cell {killed_wumpus_pos}")
         else:
             print("🤔 Heard scream but couldn't identify which wumpus was killed")
     

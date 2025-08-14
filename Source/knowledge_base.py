@@ -46,7 +46,7 @@ class KnowledgeBase:
         self.facts: Set[Proposition] = set()  # Known true propositions
         self.rules: List[Rule] = []           # Inference rules
         self.negative_facts: Set[Proposition] = set()  # Known false propositions
-        
+        self.scream = False
         # Initialize with basic world knowledge
         self._initialize_world_rules()
     
@@ -144,6 +144,9 @@ class KnowledgeBase:
         x, y = position
         
         # Update breeze information
+        if percept.scream:
+            self.scream = True
+        
         breeze_prop = self._create_proposition("Breeze", x, y)
         if percept.breeze:
             self.add_fact(breeze_prop)
@@ -479,6 +482,7 @@ class KnowledgeBase:
         - Mark the position Safe (and not Pit)
         - Remove stale Stench facts that are no longer supported by any adjacent wumpus
         """
+        print(f"Eliminating wumpus at {position}")
         x, y = position
         
         # 1) This cell no longer has a wumpus
@@ -631,6 +635,25 @@ class KnowledgeBase:
         
         # Run inference to propagate the new knowledge
         self.forward_chain()
+
+    def handle_shot_miss(self, agent_position: Tuple[int, int], agent_direction: Direction):
+        """Update KB after shooting and NOT hearing a scream.
+        This means there is no wumpus anywhere along the ray in the shooting direction.
+        Mark all cells along that ray as Wumpus-free and propagate inference.
+        """
+        dx, dy = agent_direction.value
+        x, y = agent_position
+        cx, cy = x + dx, y + dy
+        any_change = False
+        while self._is_valid_position(cx, cy):
+            w_prop = self._create_proposition("Wumpus", cx, cy)
+            if not self.is_known_false(w_prop):
+                self.add_negative_fact(w_prop)
+                any_change = True
+            cx += dx
+            cy += dy
+        if any_change:
+            self.forward_chain()
     
     def get_knowledge_summary(self) -> Dict:
         """Get summary of current knowledge for debugging/visualization"""

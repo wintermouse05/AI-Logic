@@ -118,8 +118,9 @@ def test_intelligent_agent():
         
         # Choose and execute action
         action = agent.choose_action()
-        world.step(action)
-        agent.update_position(action, percept)
+        last_percept = world.step(action)
+        #add fact wumpus_2_2
+        agent.update_position(action, last_percept)
         
         # Log action
         action_log.append({
@@ -182,7 +183,7 @@ def test_intelligent_agent():
         print(f"   Path efficiency: {efficiency:.1f}% (optimal: {optimal_path_length} steps)")
     
     # Export knowledge base
-    agent.export_knowledge_base("knowledge_base.txt")
+    agent.export_knowledge_base("knowledge_baseeeeeeeeeeeeee.txt")
     
     return final_state['agent_alive'] and final_state['agent_has_gold']
 
@@ -205,8 +206,9 @@ def test_random_agent():
     while not world.game_over and steps < max_steps:
         percept = world._generate_percepts()
         action = agent.choose_action()
-        world.step(action)
-        agent.update_position(action, percept)
+        last_percept = world.step(action)
+        
+        agent.update_position(action, last_percept)
 
         # Print key steps
         #if steps < 10 or steps % 10 == 0 or world.game_over:

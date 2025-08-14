@@ -159,37 +159,37 @@ class WumpusWorld:
         
         return False
     
-    def _generate_minimal_safe_world(self):
-        """Generate a minimal safe world that's always winnable"""
-        print("Generating minimal safe world (backup)...")
+    # def _generate_minimal_safe_world(self):
+    #     """Generate a minimal safe world that's always winnable"""
+    #     print("Generating minimal safe world (backup)...")
         
-        self.pits = set()
-        self.wumpus_positions = set()
+    #     self.pits = set()
+    #     self.wumpus_positions = set()
         
-        # Create a simple path pattern
-        if self.size >= 4:
-            # Place wumpus in a safe corner, away from main path
-            self.wumpus_positions = {(self.size - 1, self.size - 1)}
+    #     # Create a simple path pattern
+    #     if self.size >= 4:
+    #         # Place wumpus in a safe corner, away from main path
+    #         self.wumpus_positions = {(self.size - 1, self.size - 1)}
             
-            # Place gold in an accessible location
-            self.gold_position = (2, 0) if self.size > 2 else (1, 0)
+    #         # Place gold in an accessible location
+    #         self.gold_position = (2, 0) if self.size > 2 else (1, 0)
             
-            # Add one or two pits in safe locations that don't block the path
-            if self.size >= 4:
-                # Add pit that doesn't block path to gold
-                self.pits = {(1, 2)} if self.size > 3 else set()
+    #         # Add one or two pits in safe locations that don't block the path
+    #         if self.size >= 4:
+    #             # Add pit that doesn't block path to gold
+    #             self.pits = {(1, 2)} if self.size > 3 else set()
         
-        elif self.size == 3:
-            # For 3x3 world
-            self.wumpus_positions = {(2, 2)}
-            self.gold_position = (1, 0)
-            self.pits = {(0, 2)}  # One pit that doesn't block path
+    #     elif self.size == 3:
+    #         # For 3x3 world
+    #         self.wumpus_positions = {(2, 2)}
+    #         self.gold_position = (1, 0)
+    #         self.pits = {(0, 2)}  # One pit that doesn't block path
         
-        else:
-            # For very small worlds (2x2), keep it minimal
-            self.wumpus_positions = {(1, 1)}
-            self.gold_position = (1, 0)
-            self.pits = set()  # No pits in tiny worlds
+    #     else:
+    #         # For very small worlds (2x2), keep it minimal
+    #         self.wumpus_positions = {(1, 1)}
+    #         self.gold_position = (1, 0)
+    #         self.pits = set()  # No pits in tiny worlds
     
     def _is_valid_position(self, pos):
         """Check if position is within world boundaries"""
@@ -264,7 +264,6 @@ class WumpusWorld:
             # Check if arrow hits wumpus
             if (x, y) in self.wumpus_positions:
                 self.wumpus_positions.remove((x, y))
-                
                 return True  # Wumpus killed, scream
         
         return False  # Arrow missed
