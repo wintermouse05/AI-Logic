@@ -40,12 +40,47 @@ class WumpusAgent:
         self.failed_patterns = []       # Remember what failed
         self.adaptive_caution = 0.3     # Starts cautious, adapts over time
         
+        # Track percepts for inference
+        self.previous_percepts = {}  # Store previous percepts by position
+        self.last_shooting_position = None  # Track where we last shot from
+        self.last_shooting_direction = None  # Track direction we last shot
+    
     def perceive(self, percept: Percept):
         """Process percept and update knowledge base"""
+        # Store current percept for comparison
+        current_percept_key = (self.position, percept.stench, percept.breeze, percept.glitter)
+        
+        # Check for stench disappearance after shooting
+        stench_disappeared = False
+        if (self.last_shooting_position and 
+            self.last_shooting_position == self.position and
+            self.last_shooting_direction):
+            
+            # Check if stench disappeared from previous percept
+            prev_key = self.previous_percepts.get(self.position)
+            if prev_key and prev_key[1] and not percept.stench:  # Had stench before, no stench now
+                stench_disappeared = True
+                print(f"👃 Stench disappeared at {self.position} after shooting!")
+        
         # Update knowledge base with current percept
         self.kb.update_from_percept(self.position, percept)
         
-        # Run inference to derive new knowledge
+        # If we just shot and stench disappeared, update knowledge base accordingly
+        if stench_disappeared and self.last_shooting_position and self.last_shooting_direction:
+            self.kb.handle_shooting_result(
+                self.last_shooting_position, 
+                self.last_shooting_direction, 
+                True,  # We know a scream was heard (stench disappeared)
+                stench_disappeared
+            )
+            # Clear shooting tracking
+            self.last_shooting_position = None
+            self.last_shooting_direction = None
+        
+        # Store current percept for next comparison
+        self.previous_percepts[self.position] = current_percept_key
+        
+        # Run inference
         self.kb.forward_chain()
         
         # Check for gold discovery
@@ -582,6 +617,10 @@ class WumpusAgent:
         
         elif action == Action.SHOOT:
             self.has_arrow = False
+            # Track shooting position and direction for stench disappearance detection
+            self.last_shooting_position = self.position
+            self.last_shooting_direction = self.direction
+            
             if percept.scream:
                 print("💀 Wumpus killed!")
                 # Update knowledge base: wumpus is dead, cell is now safe
@@ -617,10 +656,25 @@ class WumpusAgent:
             # Use the knowledge base method to properly eliminate the wumpus
             self.kb.eliminate_wumpus(killed_wumpus_pos)
             
+            # Plan to advance into the cleared cell so we continue exploring
+            fx, fy = self.position[0] + dx, self.position[1] + dy
+            if (fx, fy) == killed_wumpus_pos:
+                # Immediate forward step reaches the cleared cell
+                self.plan = [Action.MOVE_FORWARD]
+                print(f"➡️ Advancing into cleared cell {killed_wumpus_pos}")
+            else:
+                # Plan a path directly to the cleared wumpus cell
+                path_to_cleared = self.planner.find_path_to_goal(
+                    self.position, self.direction, [killed_wumpus_pos],
+                )
+                if path_to_cleared:
+                    self.plan = path_to_cleared
+                    print(f"🧭 Planning path into cleared cell {killed_wumpus_pos}")
+            
             # Clear any outdated plans that were avoiding this area
             if self.plan:
                 print("🔄 Replanning due to wumpus elimination...")
-                self.plan = []
+                # keep the new plan we just set
         else:
             print("🤔 Heard scream but couldn't identify which wumpus was killed")
     
@@ -635,6 +689,11 @@ class WumpusAgent:
         self.visited_cells = {(0, 0)}
         self.gold_position = None
         self.plan = []
+        
+        # Reset percept tracking
+        self.previous_percepts = {}
+        self.last_shooting_position = None
+        self.last_shooting_direction = None
         
         # Reset knowledge base (forget about dangerous cells in old world)
         self.kb = KnowledgeBase(self.world_size, self.num_wumpus)

@@ -1,0 +1,191 @@
+Knowledge Base Summary
+======================
+
+facts:
+  Pit_1_4
+  Stench_1_2
+  Stench_1_1
+  Glitter_5_3
+  Stench_1_0
+  Safe_2_5
+  Safe_0_3
+  Safe_5_2
+  Breeze_1_3
+  Safe_5_4
+  Stench_4_3
+  Safe_0_5
+  Safe_3_4
+  Stench_1_3
+  Breeze_0_4
+  Safe_4_3
+  Safe_1_3
+  Wumpus_2_0
+  Gold_5_3
+  Safe_0_4
+  Safe_1_1
+  Safe_5_5
+  Wumpus_2_2
+  Safe_2_4
+  Safe_3_5
+  Wumpus_2_3
+  Safe_1_0
+  Safe_0_0
+  Breeze_1_5
+  Safe_5_3
+  Safe_1_5
+  Safe_1_2
+  Safe_4_4
+  Wumpus_2_1
+  Safe_0_1
+  Safe_0_2
+  Safe_4_5
+
+negative_facts:
+  Wumpus_0_0
+  Glitter_1_3
+  Pit_3_5
+  Glitter_4_3
+  Pit_0_5
+  Glitter_1_1
+  Breeze_3_5
+  Glitter_3_5
+  Pit_4_2
+  Pit_2_5
+  Stench_0_3
+  Wumpus_1_1
+  Glitter_1_5
+  Stench_1_5
+  Pit_1_3
+  Wumpus_3_5
+  Pit_0_0
+  Pit_3_3
+  Glitter_0_5
+  Glitter_0_2
+  Wumpus_0_5
+  Pit_2_0
+  Breeze_5_3
+  Stench_3_5
+  Glitter_4_5
+  Glitter_5_5
+  Stench_0_2
+  Breeze_0_5
+  Glitter_2_5
+  Breeze_4_3
+  Pit_5_3
+  Pit_0_4
+  Stench_0_0
+  Glitter_4_4
+  Pit_2_2
+  Stench_4_4
+  Pit_0_2
+  Breeze_0_3
+  Stench_5_3
+  Wumpus_4_4
+  Wumpus_2_5
+  Breeze_5_5
+  Wumpus_5_3
+  Glitter_0_3
+  Breeze_0_0
+  Breeze_2_5
+  Wumpus_1_0
+  Pit_1_1
+  Pit_0_3
+  Pit_3_4
+  Wumpus_5_2
+  Wumpus_0_3
+  Pit_2_1
+  Wumpus_1_2
+  Pit_2_4
+  Safe_2_3
+  Pit_4_5
+  Glitter_1_0
+  Wumpus_0_4
+  Glitter_5_4
+  Wumpus_4_3
+  Breeze_1_2
+  Glitter_5_3
+  Glitter_0_1
+  Wumpus_1_3
+  Breeze_0_1
+  Breeze_0_2
+  Wumpus_1_4
+  Glitter_0_0
+  Stench_2_5
+  Stench_0_5
+  Stench_0_4
+  Pit_5_5
+  Pit_1_2
+  Wumpus_5_4
+  Breeze_1_1
+  Glitter_0_4
+  Wumpus_1_5
+  Stench_5_4
+  Breeze_5_4
+  Pit_0_1
+  Pit_1_5
+  Stench_5_5
+  Stench_4_5
+  Wumpus_3_4
+  Wumpus_4_5
+  Breeze_4_4
+  Breeze_4_5
+  Glitter_1_2
+  Pit_5_4
+  Wumpus_0_1
+  Pit_1_0
+  Wumpus_5_5
+  Pit_5_2
+  Pit_4_3
+  Breeze_1_0
+  Pit_4_4
+  Wumpus_0_2
+  Safe_1_4
+  Stench_0_1
+  Wumpus_2_4
+
+safe_cells:
+  (3, 4)
+  (4, 3)
+  (5, 4)
+  (0, 2)
+  (0, 5)
+  (1, 0)
+  (2, 5)
+  (1, 3)
+  (4, 5)
+  (5, 3)
+  (0, 1)
+  (2, 4)
+  (1, 2)
+  (0, 4)
+  (1, 5)
+  (3, 5)
+  (5, 2)
+  (4, 4)
+  (5, 5)
+  (0, 0)
+  (1, 1)
+  (0, 3)
+
+dangerous_cells:
+  (2, 1)
+  (2, 0)
+  (1, 4)
+  (2, 3)
+  (2, 2)
+
+possible_wumpus:
+  (2, 1)
+  (2, 0)
+  (2, 3)
+  (2, 2)
+
+certain_wumpus:
+  (2, 3)
+  (2, 0)
+  (2, 1)
+  (2, 2)
+
+certain_pits:
+  (1, 4)
+

@@ -62,7 +62,15 @@
 WORLD_SIZE = 6
 START_POSITION = (0, 0)
 GOLD_POSITION = (5, 3)
-PITS = [(1, 4), (3, 4), (5, 0)]
+PITS = [(1, 4), (5, 0)]
 WUMPUS_POSITIONS = [(2, 5), (2, 0),(4, 2), (2, 1), (2, 2), (2, 3)]
 NUM_WUMPUS = 6
-NUM_PITS = 3
+NUM_PITS = 2
+
+# WORLD_SIZE = 4
+# START_POSITION = (0, 0)
+# GOLD_POSITION = (3, 3)
+# PITS = [(1, 1), (3, 1)]
+# WUMPUS_POSITIONS = [(1, 0), (0, 1)]
+# NUM_WUMPUS = 2
+# NUM_PITS = 2

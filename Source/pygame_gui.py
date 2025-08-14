@@ -230,6 +230,15 @@ class WumpusWorldPygameGUI:
         
         return True
     
+    def draw_menu(self):
+        # ...existing code vẽ menu...
+        # Vẽ nút Developer Mode
+        dev_text = "Developer Mode: ON" if self.developer_mode else "Developer Mode"
+        pygame.draw.rect(self.screen, (100, 100, 200), self.buttons['developer'])
+        text_surface = self.font_medium.render(dev_text, True, (255,255,255))
+        text_rect = text_surface.get_rect(center=self.buttons['developer'].center)
+        self.screen.blit(text_surface, text_rect)
+
     def handle_mouse_click(self, pos):
         """Handle mouse clicks"""
         if self.state == GameState.MENU:
@@ -240,7 +249,7 @@ class WumpusWorldPygameGUI:
             elif self.buttons['quit'].collidepoint(pos):
                 pygame.quit()
                 sys.exit()
-            
+    
             # Handle checkbox clicks
             for name, checkbox in self.checkboxes.items():
                 if checkbox['rect'].collidepoint(pos):
@@ -873,8 +882,18 @@ class WumpusWorldPygameGUI:
         # Always draw agent sprite when agent is in this position (PRIORITY - draw last/on top)
         if pos == state['agent_position']:
             if state['agent_alive']:
-                # Always draw agent sprite
-                agent_sprite = get_agent_sprite(cell_size - 8)
+                # Vẽ agent theo hướng
+                direction = state['agent_direction']
+                if direction == Direction.NORTH:
+                    agent_sprite = get_agent_sprite(cell_size - 8, 'up.png')
+                elif direction == Direction.SOUTH:
+                    agent_sprite = get_agent_sprite(cell_size - 8, 'down.png')
+                elif direction == Direction.WEST:
+                    agent_sprite = get_agent_sprite(cell_size - 8, 'left.png')
+                elif direction == Direction.EAST:
+                    agent_sprite = get_agent_sprite(cell_size - 8, 'right.png')
+                else:
+                    agent_sprite = get_agent_sprite(cell_size - 8)
                 if agent_sprite:
                     sprite_rect = agent_sprite.get_rect(center=(center_x, center_y))
                     self.screen.blit(agent_sprite, sprite_rect)

@@ -206,7 +206,16 @@ def test_random_agent():
         percept = world._generate_percepts()
         action = agent.choose_action()
         world.step(action)
-        
+        agent.update_position(action, percept)
+
+        # Print key steps
+        #if steps < 10 or steps % 10 == 0 or world.game_over:
+        if steps < 50:
+            print(f"Step {steps + 1:3d}: {world.agent_position} -> {action.value}")
+            if percept and percept != []:
+                print(f"         Percept: {percept}")
+            
+
         steps += 1
     
     final_state = world.get_world_state()
@@ -228,15 +237,15 @@ if __name__ == "__main__":
     # Test intelligent agent
     intelligent_success = test_intelligent_agent()
     
-    # Test random agent
-    #random_success = test_random_agent()
+    # # Test random agent
+    # random_success = test_random_agent()
     
-    # Final comparison
-    print("\n" + "=" * 60)
-    print("📈 COMPARISON SUMMARY")
-    print("=" * 60)
-    print(f"Intelligent Agent: {'✅ SUCCESS' if intelligent_success else '❌ FAILED'}")
-    #print(f"Random Agent:      {'✅ SUCCESS' if random_success else '❌ FAILED'}")
+    # # Final comparison
+    # print("\n" + "=" * 60)
+    # print("📈 COMPARISON SUMMARY")
+    # print("=" * 60)
+    # print(f"Intelligent Agent: {'✅ SUCCESS' if intelligent_success else '❌ FAILED'}")
+    # print(f"Random Agent:      {'✅ SUCCESS' if random_success else '❌ FAILED'}")
     
     # if intelligent_success and not random_success:
     #     print("\n🎉 Perfect! Intelligent agent succeeded where random agent failed!")

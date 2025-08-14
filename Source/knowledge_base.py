@@ -473,6 +473,165 @@ class KnowledgeBase:
         
         return changed
     
+    def eliminate_wumpus(self, position: Tuple[int, int]):
+        """Update KB after a wumpus at position is killed.
+        - Mark Wumpus at position as false
+        - Mark the position Safe (and not Pit)
+        - Remove stale Stench facts that are no longer supported by any adjacent wumpus
+        """
+        x, y = position
+        
+        # 1) This cell no longer has a wumpus
+        wumpus_prop = self._create_proposition("Wumpus", x, y)
+        if wumpus_prop in self.facts:
+            self.facts.discard(wumpus_prop)
+        self.add_negative_fact(wumpus_prop)
+        
+        # Also assert no pit here and mark it safe (worlds typically don't co-locate hazards)
+        pit_prop = self._create_proposition("Pit", x, y)
+        self.add_negative_fact(pit_prop)
+        safe_prop = self._create_proposition("Safe", x, y)
+        self.add_fact(safe_prop)
+        
+        # 2) Immediately clear stench on cells adjacent to the killed wumpus
+        #    (these cells smelled because of this wumpus; if no other adjacent
+        #    wumpus is known, remove the stench to update the map promptly)
+        for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+            sx, sy = x + dx, y + dy
+            if self._is_valid_position(sx, sy):
+                stench_prop = self._create_proposition("Stench", sx, sy)
+                if self.is_known_true(stench_prop):
+                    # Check if any other adjacent cell (excluding the killed one)
+                    # could still host a wumpus. If not, clear stench.
+                    other_source_exists = False
+                    for ox, oy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+                        ax, ay = sx + ox, sy + oy
+                        if not self._is_valid_position(ax, ay):
+                            continue
+                        if (ax, ay) == (x, y):
+                            continue  # skip the killed wumpus cell
+                        adj_w = self._create_proposition("Wumpus", ax, ay)
+                        if not self.is_known_false(adj_w):
+                            other_source_exists = True
+                            break
+                    if not other_source_exists:
+                        if stench_prop in self.facts:
+                            self.facts.discard(stench_prop)
+                        self.add_negative_fact(stench_prop)
+
+        # 3) Any stench facts that can no longer be supported should become negative (global sweep)
+        for sx in range(self.world_size):
+            for sy in range(self.world_size):
+                stench_prop = self._create_proposition("Stench", sx, sy)
+                if self.is_known_true(stench_prop):
+                    # Check if any adjacent cell could still have a wumpus
+                    has_adjacent_possible_wumpus = False
+                    for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+                        ax, ay = sx + dx, sy + dy
+                        if self._is_valid_position(ax, ay):
+                            adj_wumpus = self._create_proposition("Wumpus", ax, ay)
+                            # If an adjacent cell is not known FALSE for wumpus,
+                            # stench could still be valid (conservative)
+                            if not self.is_known_false(adj_wumpus):
+                                has_adjacent_possible_wumpus = True
+                                break
+                    
+                    # If all adjacent cells are confirmed wumpus-free, stench must be false now
+                    if not has_adjacent_possible_wumpus:
+                        if stench_prop in self.facts:
+                            self.facts.discard(stench_prop)
+                        self.add_negative_fact(stench_prop)
+        
+        # 4) Re-run inference to propagate safety
+        self.forward_chain()
+    
+    def handle_shooting_result(self, agent_position: Tuple[int, int], agent_direction: Direction, 
+                              scream_heard: bool, stench_disappeared: bool = False):
+        """
+        Handle the result of shooting an arrow.
+        
+        Args:
+            agent_position: Current position of the agent
+            agent_direction: Direction the agent is facing
+            scream_heard: Whether a scream was heard (wumpus killed)
+            stench_disappeared: Whether stench percept disappeared after shooting
+        """
+        if not scream_heard:
+            return  # No wumpus killed, nothing to infer
+        
+        # Calculate the cell the agent was facing when shooting
+        dx, dy = agent_direction.value
+        target_x = agent_position[0] + dx
+        target_y = agent_position[1] + dy
+        
+        # Check if target position is valid
+        if not self._is_valid_position(target_x, target_y):
+            return
+        
+        target_position = (target_x, target_y)
+        
+        # If we heard a scream, the wumpus at the target position is dead
+        wumpus_prop = self._create_proposition("Wumpus", target_x, target_y)
+        if self.is_known_true(wumpus_prop):
+            # Use the existing eliminate_wumpus method
+            self.eliminate_wumpus(target_position)
+        else:
+            # Even if we didn't know there was a wumpus there, we now know there isn't
+            self.add_negative_fact(wumpus_prop)
+            
+            # Mark the cell as safe (no wumpus and no pit)
+            safe_prop = self._create_proposition("Safe", target_x, target_y)
+            pit_prop = self._create_proposition("Pit", target_x, target_y)
+            
+            # We can't be certain there's no pit, but we know there's no wumpus
+            # The cell is safe from wumpus, but may still have a pit
+            if not self.is_known_true(pit_prop):
+                # If we also know there's no pit, then it's safe
+                if self.is_known_false(pit_prop):
+                    self.add_fact(safe_prop)
+                # Otherwise, we can only infer it's safe from wumpus
+        
+        # If stench disappeared after shooting, this provides additional evidence
+        # that the target cell was the source of the stench
+        if stench_disappeared:
+            # The stench at the agent's position should now be false
+            # since the wumpus that was causing it is dead
+            agent_stench_prop = self._create_proposition("Stench", agent_position[0], agent_position[1])
+            if self.is_known_true(agent_stench_prop):
+                # Remove the stench fact and add it as a negative fact
+                self.facts.discard(agent_stench_prop)
+                self.add_negative_fact(agent_stench_prop)
+            
+            # Also check adjacent cells for stench that might have been caused by this wumpus
+            for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+                adj_x, adj_y = agent_position[0] + dx, agent_position[1] + dy
+                if self._is_valid_position(adj_x, adj_y):
+                    # If this adjacent cell had stench and is adjacent to the killed wumpus,
+                    # and no other wumpus could be causing the stench, remove it
+                    adj_stench_prop = self._create_proposition("Stench", adj_x, adj_y)
+                    if self.is_known_true(adj_stench_prop):
+                        # Check if any other adjacent cell could still have a wumpus
+                        has_other_wumpus_source = False
+                        for ox, oy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+                            other_x, other_y = adj_x + ox, adj_y + oy
+                            if not self._is_valid_position(other_x, other_y):
+                                continue
+                            if (other_x, other_y) == target_position:
+                                continue  # Skip the killed wumpus
+                            
+                            other_wumpus_prop = self._create_proposition("Wumpus", other_x, other_y)
+                            if not self.is_known_false(other_wumpus_prop):
+                                has_other_wumpus_source = True
+                                break
+                        
+                        # If no other wumpus source exists, remove the stench
+                        if not has_other_wumpus_source:
+                            self.facts.discard(adj_stench_prop)
+                            self.add_negative_fact(adj_stench_prop)
+        
+        # Run inference to propagate the new knowledge
+        self.forward_chain()
+    
     def get_knowledge_summary(self) -> Dict:
         """Get summary of current knowledge for debugging/visualization"""
         summary = {
