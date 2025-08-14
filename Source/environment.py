@@ -264,6 +264,7 @@ class WumpusWorld:
             # Check if arrow hits wumpus
             if (x, y) in self.wumpus_positions:
                 self.wumpus_positions.remove((x, y))
+                
                 return True  # Wumpus killed, scream
         
         return False  # Arrow missed
