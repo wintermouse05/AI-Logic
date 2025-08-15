@@ -4,6 +4,7 @@ A modern, interactive graphical interface for the Wumpus World game.
 """
 
 import pygame
+import pygame.mixer
 import sys
 import threading
 import time
@@ -24,6 +25,7 @@ from models.character_loader import get_agent_sprite, get_wumpus_sprite, get_gol
 
 # Initialize Pygame
 pygame.init()
+pygame.mixer.init()
 
 # Colors
 class Colors:
@@ -66,7 +68,7 @@ class WumpusWorldPygameGUI:
         
         # Initialize display
         self.screen = pygame.display.set_mode((self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
-        pygame.display.set_caption("🏰 Wumpus World - AI Agent")
+        pygame.display.set_caption("")  # Xóa tiêu đề
         self.clock = pygame.time.Clock()
         
         # Load background images
@@ -122,9 +124,9 @@ class WumpusWorldPygameGUI:
                 menu_bg = pygame.image.load(menu_bg_path)
                 # Scale to fit screen while maintaining aspect ratio
                 self.menu_background = pygame.transform.scale(menu_bg, (self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
-                print("✅ Menu background loaded successfully")
+                print("Menu background loaded successfully")
             else:
-                print("⚠️ Menu background not found")
+                print("Menu background not found")
                 
             # Load game background (background.png)
             game_bg_path = os.path.join(current_dir, "background", "background.png")
@@ -132,12 +134,12 @@ class WumpusWorldPygameGUI:
                 game_bg = pygame.image.load(game_bg_path)
                 # Scale to fit screen while maintaining aspect ratio
                 self.game_background = pygame.transform.scale(game_bg, (self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
-                print("✅ Game background loaded successfully")
+                print("Game background loaded successfully")
             else:
-                print("⚠️ Game background not found")
+                print("Game background not found")
                 
         except Exception as e:
-            print(f"⚠️ Error loading backgrounds: {e}")
+            print(f"Error loading backgrounds: {e}")
             self.menu_background = None
             self.game_background = None
     
@@ -148,10 +150,13 @@ class WumpusWorldPygameGUI:
         
         # Main menu buttons - moved down and centered
         center_x = self.WINDOW_WIDTH // 2
-        self.buttons['start'] = pygame.Rect(center_x - 180, 550, button_width, button_height)
-        self.buttons['experiment'] = pygame.Rect(center_x - 60, 550, button_width, button_height)
-        self.buttons['quit'] = pygame.Rect(center_x + 60, 550, button_width, button_height)
-        
+        button_gap = 30  # khoảng cách giữa các nút
+        total_width = button_width * 3 + button_gap * 2
+        left_x = center_x - total_width // 2
+        self.buttons['start'] = pygame.Rect(left_x, 550, button_width, button_height)
+        self.buttons['experiment'] = pygame.Rect(left_x + button_width + button_gap, 550, button_width, button_height)
+        self.buttons['quit'] = pygame.Rect(left_x + (button_width + button_gap) * 2, 550, button_width, button_height)
+            
         # Game control buttons
         self.buttons['pause'] = pygame.Rect(50, 150, button_width, button_height)
         self.buttons['step'] = pygame.Rect(180, 150, button_width, button_height)
@@ -166,7 +171,7 @@ class WumpusWorldPygameGUI:
         }
         self.sliders['wumpus_count'] = {
             'rect': pygame.Rect(200, 290, 150, 20),
-            'min': 1, 'max': 4, 'value': 2, 'label': 'Wumpus Count'
+            'min': 1, 'max': 8, 'value': 2, 'label': 'Wumpus Count'
         }
         self.sliders['pit_prob'] = {
             'rect': pygame.Rect(200, 330, 150, 20),
@@ -235,7 +240,7 @@ class WumpusWorldPygameGUI:
             elif self.buttons['quit'].collidepoint(pos):
                 pygame.quit()
                 sys.exit()
-            
+    
             # Handle checkbox clicks
             for name, checkbox in self.checkboxes.items():
                 if checkbox['rect'].collidepoint(pos):
@@ -307,37 +312,37 @@ class WumpusWorldPygameGUI:
         
         if self.moving_wumpus:
             self.world.enable_moving_wumpus()
-            self.add_log_message("🔄 Moving wumpus enabled!")
+            self.add_log_message("Moving wumpus enabled!")
         
         if self.agent_type == "Intelligent":
             self.agent = WumpusAgent(self.world_size, self.wumpus_count)
-            self.add_log_message("🧠 Intelligent agent selected")
+            self.add_log_message("Intelligent agent selected")
         else:
             self.agent = RandomAgent(self.world_size)
-            self.add_log_message("🎲 Random agent selected")
+            self.add_log_message("Random agent selected")
         
         self.state = GameState.PLAYING
         self.simulation_running = True
         # Start simulation thread
         self.simulation_thread = threading.Thread(target=self.simulation_loop, daemon=True)
         self.simulation_thread.start()
-        self.add_log_message(f"🎮 Game started! {self.world_size}x{self.world_size} world")
-        self.add_log_message("🏠 Agent starts at position (0,0) - bottom-left corner")
-        self.add_log_message("🎯 World generated with guaranteed winnable path to gold!")
+        self.add_log_message(f"Game started! {self.world_size}x{self.world_size} world")
+        self.add_log_message("Agent starts at position (0,0) - bottom-left corner")
+        self.add_log_message("World generated with guaranteed winnable path to gold!")
     
     def toggle_pause(self):
         """Toggle pause state"""
         if self.state == GameState.PLAYING:
             self.simulation_running = False
             self.state = GameState.PAUSED
-            self.add_log_message("⏸️ Game paused")
+            self.add_log_message("⏸Game paused")
         elif self.state == GameState.PAUSED:
             self.simulation_running = True
             self.state = GameState.PLAYING
             # Resume simulation
             self.simulation_thread = threading.Thread(target=self.simulation_loop, daemon=True)
             self.simulation_thread.start()
-            self.add_log_message("▶️ Game resumed")
+            self.add_log_message("Game resumed")
     
     def step_game(self):
         """Execute one step"""
@@ -411,22 +416,22 @@ class WumpusWorldPygameGUI:
                             pit_prop_name = f"Pit_{death_position[0]}_{death_position[1]}"
                             from knowledge_base import Proposition
                             agent_kb.add_fact(Proposition(pit_prop_name))
-                            self.add_log_message(f"💀 Agent chết vì rơi xuống hố tại {death_position}")
-                            self.add_log_message(f"🔴 Đánh dấu {death_position} là HỐ CHẾT NGƯỜI!")
+                            self.add_log_message(f"Agent died by falling into pit at {death_position}")
+                            self.add_log_message(f"Mark {death_position} as deadly pit!")
                         elif died_from_wumpus:
                             # Add definitive knowledge that this cell has a wumpus
                             wumpus_prop_name = f"Wumpus_{death_position[0]}_{death_position[1]}"
                             from knowledge_base import Proposition
                             agent_kb.add_fact(Proposition(wumpus_prop_name))
-                            self.add_log_message(f"💀 Agent chết vì bị Wumpus ăn thịt tại {death_position}")
-                            self.add_log_message(f"🔴 Đánh dấu {death_position} là WUMPUS CHẾT NGƯỜI!")
+                            self.add_log_message(f"Agent died by being eaten by Wumpus at {death_position}")
+                            self.add_log_message(f"Mark {death_position} as deadly Wumpus!")
                         
                         # Run inference to update knowledge
                         agent_kb.forward_chain()
-                
-                self.add_log_message("🔄 Smart reset: THUA - Chơi lại chính thế giới này!")
-                self.add_log_message("🧠 Giữ nguyên: vị trí pit/wumpus/vàng, màu các ô, knowledge base")
-                self.add_log_message("📍 Agent quay về (0,0), thử chinh phục lại!")
+
+                self.add_log_message("Smart reset: LOST - Replay the same world!")
+                self.add_log_message("Preserve: pit/wumpus/gold positions, cell colors, knowledge base")
+                self.add_log_message("Agent returns to (0,0), try again!")
                 
             else:
                 # Agent WON or manual reset - generate completely NEW world
@@ -435,13 +440,13 @@ class WumpusWorldPygameGUI:
                 # Reset agent for new world but preserve learning
                 if hasattr(self.agent, 'reset_for_new_world'):
                     self.agent.reset_for_new_world(preserve_learning=True)
-                    self.add_log_message("🏆 Smart reset: THẮNG! Thế giới mới, giữ knowledge base")
+                    self.add_log_message("Smart reset: WON! Create new world, preserve knowledge base")
                 else:
-                    self.add_log_message("🧠 Smart reset: Thế giới mới được tạo")
-                
-                self.add_log_message(f"🗺️ Thế giới {self.world_size}x{self.world_size} hoàn toàn mới")
-                self.add_log_message("🎯 Bắt đầu thử thách mới với kinh nghiệm cũ!")
-            
+                    self.add_log_message("Smart reset: New world has been created")
+
+                self.add_log_message(f"New {self.world_size}x{self.world_size} world has been created")
+                self.add_log_message("Starting new challenge with old experience!")
+
             # Reset GUI state and restart simulation
             self.state = GameState.PLAYING
             self.simulation_running = True
@@ -449,10 +454,10 @@ class WumpusWorldPygameGUI:
             # Start new simulation thread
             self.simulation_thread = threading.Thread(target=self.simulation_loop, daemon=True)
             self.simulation_thread.start()
-            self.add_log_message("▶️ Game tự động bắt đầu chạy!")
-            
+            self.add_log_message("Game is automatic started")
+
         else:
-            self.add_log_message("⚠️ No active game to reset")
+            self.add_log_message("No active game to reset")
     
     def complete_reset_game(self):
         """Complete reset - new world and clear all agent learning"""
@@ -465,9 +470,9 @@ class WumpusWorldPygameGUI:
             # Complete agent reset (forgets all learning)
             if hasattr(self.agent, 'reset_for_new_world'):
                 self.agent.reset_for_new_world(preserve_learning=False)
-                self.add_log_message("🧠 Full reset: Xóa toàn bộ knowledge base!")
+                self.add_log_message("Full reset: Clear all knowledge base")
             else:
-                self.add_log_message("🔄 Full reset: Agent reset hoàn toàn")
+                self.add_log_message("Full reset: Reset agent fully")
             
             # Reset GUI state and restart simulation
             self.state = GameState.PLAYING
@@ -477,12 +482,12 @@ class WumpusWorldPygameGUI:
             self.simulation_thread = threading.Thread(target=self.simulation_loop, daemon=True)
             self.simulation_thread.start()
             
-            self.add_log_message("🗺️ Thế giới mới + trí nhớ trống!")
-            self.add_log_message("🎯 Agent bắt đầu học từ con số 0!")
-            self.add_log_message("▶️ Game tự động bắt đầu chạy!")
-            
+            self.add_log_message("New world + No knowledge base!")
+            self.add_log_message("Agent started from scratch")
+            self.add_log_message("Game is automatically started")
+
         else:
-            self.add_log_message("⚠️ No active game to reset")
+            self.add_log_message("No active game to reset")
     
     def simulation_loop(self):
         """Main simulation loop (runs in separate thread)"""
@@ -539,18 +544,18 @@ class WumpusWorldPygameGUI:
                     if self.world and not self.world.agent_alive:
                         agent_pos = self.world.agent_position
                         if agent_pos in self.world.pits:
-                            self.add_log_message(f"💀 Agent fell into pit at {agent_pos}!")
+                            self.add_log_message(f"Agent fell into pit at {agent_pos}!")
                         elif agent_pos in self.world.wumpus_positions:
-                            self.add_log_message(f"💀 Agent eaten by wumpus at {agent_pos}!")
+                            self.add_log_message(f"Agent eaten by wumpus at {agent_pos}!")
                 
                 elif message_type == "game_over":
                     self.simulation_running = False
                     self.state = GameState.GAME_OVER
-                    self.add_log_message(f"🏁 Game over after {data} steps")
+                    self.add_log_message(f"Game over after {data} steps")
                 
                 elif message_type == "max_steps":
                     self.simulation_running = False
-                    self.add_log_message(f"⏰ Max steps ({data}) reached")
+                    self.add_log_message(f"Max steps ({data}) reached")
                 
                 elif message_type == "experiment_result":
                     self.add_log_message("🧪 Experiment completed!")
@@ -619,9 +624,7 @@ class WumpusWorldPygameGUI:
         self.screen.blit(overlay, (0, 0))
         
         # Title
-        title = self.font_large.render("🏰 Wumpus World - AI Agent", True, Colors.WHITE)
-        title_rect = title.get_rect(center=(self.WINDOW_WIDTH // 2, 80))
-        self.screen.blit(title, title_rect)
+    # Xóa tiêu đề
         
         # Settings panel
         settings_x = 50
@@ -629,12 +632,15 @@ class WumpusWorldPygameGUI:
         
         # Draw sliders
         for name, slider in self.sliders.items():
+            # Render label and value
             label = self.font_medium.render(f"{slider['label']}: {slider['value']}", True, Colors.WHITE)
-            self.screen.blit(label, (settings_x, slider['rect'].y - 25))
-            
+            # Đặt label bên trái slider, căn giữa theo chiều dọc slider
+            label_y = slider['rect'].y + (slider['rect'].height // 2) - (label.get_height() // 2)
+            self.screen.blit(label, (slider['rect'].x - label.get_width() - 10, label_y))
+
             # Slider background
             pygame.draw.rect(self.screen, Colors.DARK_GRAY, slider['rect'])
-            
+
             # Slider handle
             ratio = (slider['value'] - slider['min']) / (slider['max'] - slider['min'])
             handle_x = slider['rect'].x + ratio * slider['rect'].width
@@ -658,9 +664,9 @@ class WumpusWorldPygameGUI:
             self.screen.blit(label, (checkbox['rect'].x + 30, checkbox['rect'].y))
         
         # Menu buttons
-        self.draw_button(self.buttons['start'], "🎮 Start Game", Colors.GREEN)
-        self.draw_button(self.buttons['experiment'], "🧪 Experiment", Colors.BLUE)
-        self.draw_button(self.buttons['quit'], "❌ Quit", Colors.RED)
+        self.draw_button(self.buttons['start'], "Start Game", Colors.GREEN)
+        self.draw_button(self.buttons['experiment'], "Experiment", Colors.BLUE)
+        self.draw_button(self.buttons['quit'], "Quit", Colors.RED)
         
         # Instructions
         instructions = [
@@ -695,12 +701,12 @@ class WumpusWorldPygameGUI:
         
         # Draw control buttons
         button_color = Colors.ORANGE if self.state == GameState.PAUSED else Colors.BLUE
-        pause_text = "▶️ Resume" if self.state == GameState.PAUSED else "⏸️ Pause"
+        pause_text = "Resume" if self.state == GameState.PAUSED else "Pause"
         self.draw_button(self.buttons['pause'], pause_text, button_color)
-        self.draw_button(self.buttons['step'], "➡️ Step", Colors.CYAN if self.state == GameState.PAUSED else Colors.GRAY)
-        self.draw_button(self.buttons['reset'], "🔄 Smart Reset", Colors.YELLOW)
-        self.draw_button(self.buttons['full_reset'], "🧠 Full Reset", Colors.ORANGE)
-        self.draw_button(self.buttons['menu'], "🏠 Menu", Colors.PURPLE)
+        self.draw_button(self.buttons['step'], "Step", Colors.CYAN if self.state == GameState.PAUSED else Colors.GRAY)
+        self.draw_button(self.buttons['reset'], "Smart Reset", Colors.YELLOW)
+        self.draw_button(self.buttons['full_reset'], "Full Reset", Colors.ORANGE)
+        self.draw_button(self.buttons['menu'], "Menu", Colors.PURPLE)
         
         # Draw game board
         board_x = 50
@@ -867,8 +873,18 @@ class WumpusWorldPygameGUI:
         # Always draw agent sprite when agent is in this position (PRIORITY - draw last/on top)
         if pos == state['agent_position']:
             if state['agent_alive']:
-                # Always draw agent sprite
-                agent_sprite = get_agent_sprite(cell_size - 8)
+                # Vẽ agent theo hướng
+                direction = state['agent_direction']
+                if direction == Direction.NORTH:
+                    agent_sprite = get_agent_sprite(cell_size - 8, 'up.png')
+                elif direction == Direction.SOUTH:
+                    agent_sprite = get_agent_sprite(cell_size - 8, 'down.png')
+                elif direction == Direction.WEST:
+                    agent_sprite = get_agent_sprite(cell_size - 8, 'left.png')
+                elif direction == Direction.EAST:
+                    agent_sprite = get_agent_sprite(cell_size - 8, 'right.png')
+                else:
+                    agent_sprite = get_agent_sprite(cell_size - 8)
                 if agent_sprite:
                     sprite_rect = agent_sprite.get_rect(center=(center_x, center_y))
                     self.screen.blit(agent_sprite, sprite_rect)
@@ -883,10 +899,18 @@ class WumpusWorldPygameGUI:
                     agent_symbol = direction_symbols.get(state['agent_direction'], "🤖")
                     self.draw_emoji_text(agent_symbol, center_x, center_y, 24)
             else:
-                # Draw dead agent sprite - larger and more visible
-                self.draw_emoji_text("💀", center_x, center_y, 32)
+                # Hiển thị Death_skull.png vừa với ô
+                from models.character_loader import get_death_skull_sprite
+                death_sprite = get_death_skull_sprite(cell_size - 8)
+                if death_sprite:
+                    sprite_rect = death_sprite.get_rect(center=(center_x, center_y))
+                    self.screen.blit(death_sprite, sprite_rect)
+                else:
+                    self.draw_emoji_text("💀", center_x, center_y, 32)
                 # Add red overlay to indicate death
-                pygame.draw.circle(self.screen, (255, 0, 0, 100), (center_x, center_y), cell_size // 3, 3)
+                overlay = pygame.Surface((cell_size, cell_size), pygame.SRCALPHA)
+                pygame.draw.circle(overlay, (255, 0, 0, 100), (cell_size // 2, cell_size // 2), cell_size // 3, 3)
+                self.screen.blit(overlay, (cell_x, cell_y))
 
     
     def draw_emoji_text(self, text, x, y, size):
@@ -1008,15 +1032,15 @@ class WumpusWorldPygameGUI:
         # Game over text
         if state['agent_alive']:
             if state['agent_has_gold']:
-                title = "🏆 SUCCESS!"
+                title = "SUCCESS!"
                 subtitle = "Agent escaped with gold!"
                 color = Colors.GREEN
             else:
-                title = "🚪 ESCAPED"
+                title = "ESCAPED"
                 subtitle = "Agent climbed out safely"
                 color = Colors.BLUE
         else:
-            title = "💀 GAME OVER"
+            title = "GAME OVER"
             subtitle = "Agent died"
             color = Colors.RED
         
@@ -1070,6 +1094,17 @@ class WumpusWorldPygameGUI:
 def main():
     """Main function to start the pygame GUI"""
     try:
+        # Kiểm tra file nhạc và báo lỗi chi tiết
+        music_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "music.wav")
+        if not os.path.exists(music_path):
+            print(f"Error: File music.wav not found at {music_path}")
+        else:
+            try:
+                pygame.mixer.music.load(music_path)
+                pygame.mixer.music.play(-1)
+                print("Background music started successfully.")
+            except Exception as e:
+                print(f"Error loading or playing music.wav: {e}")
         gui = WumpusWorldPygameGUI()
         gui.run()
     except Exception as e:

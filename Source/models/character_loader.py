@@ -23,7 +23,8 @@ class SpriteLoader:
             'agent': 'agent.png',
             'wumpus': 'wumpus.png',
             'gold': 'gold.png',
-            'hole': 'hole.png'
+            'hole': 'hole.png',
+            'Death_skull': 'Death_skull.png'
         }
         
         for sprite_name, filename in sprite_files.items():
@@ -69,9 +70,23 @@ def get_sprite(sprite_name: str, size: Optional[int] = None) -> Optional[pygame.
     init_sprite_loader()
     return sprite_loader.get_sprite(sprite_name, size)
 
-def get_agent_sprite(size: Optional[int] = None) -> Optional[pygame.Surface]:
-    """Get agent sprite"""
-    return get_sprite('agent', size)
+def get_agent_sprite(size: Optional[int] = None, filename: Optional[str] = None) -> Optional[pygame.Surface]:
+    """Get agent sprite by direction image"""
+    init_sprite_loader()
+    if filename:
+        # Tìm file ảnh theo tên trong thư mục models
+        import os
+        import pygame
+        img_path = os.path.join(os.path.dirname(__file__), filename)
+        if os.path.exists(img_path):
+            img = pygame.image.load(img_path)
+            if size:
+                img = pygame.transform.scale(img, (size, size))
+            return img
+        else:
+            return sprite_loader.get_sprite('agent', size)
+    else:
+        return sprite_loader.get_sprite('agent', size)
 
 def get_wumpus_sprite(size: Optional[int] = None) -> Optional[pygame.Surface]:
     """Get wumpus sprite"""
@@ -80,6 +95,10 @@ def get_wumpus_sprite(size: Optional[int] = None) -> Optional[pygame.Surface]:
 def get_gold_sprite(size: Optional[int] = None) -> Optional[pygame.Surface]:
     """Get gold sprite"""
     return get_sprite('gold', size)
+
+def get_death_skull_sprite(size: Optional[int] = None) -> Optional[pygame.Surface]:
+    """Get death skull sprite"""
+    return get_sprite('Death_skull', size)
 
 def get_hole_sprite(size: Optional[int] = None) -> Optional[pygame.Surface]:
     """Get hole/pit sprite"""
