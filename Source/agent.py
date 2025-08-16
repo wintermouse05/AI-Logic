@@ -49,8 +49,13 @@ class WumpusAgent:
         self.turn_count_in_current_cell = 0
         self.last_cell_position = (0, 0)
     
-    def perceive(self, percept: Percept):
+    def perceive(self, percept: Percept, wumpus_moved=False):
         """Process percept and update knowledge base"""
+        # Handle wumpus movement if detected
+        if wumpus_moved:
+            print("🔄 Wumpus movement detected! Updating knowledge base...")
+            self.kb.handle_wumpus_movement()
+        
         # Store current percept for comparison
         current_percept_key = (self.position, percept.stench, percept.breeze, percept.glitter)
         

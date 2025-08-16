@@ -62,6 +62,7 @@ class WumpusWorld:
         self.score = 0
         self.action_count = 0
         self.moving_wumpus = False  # For advanced setting
+        self.wumpus_moved = False  # Track if wumpus moved in last step
         
         # Generate world
         self._generate_world()
@@ -289,6 +290,7 @@ class WumpusWorld:
         if not self.moving_wumpus:
             return
         
+        old_wumpus_positions = self.wumpus_positions.copy()
         new_wumpus_positions = set()
         
         for wumpus_pos in self.wumpus_positions:
@@ -305,6 +307,13 @@ class WumpusWorld:
         
         self.wumpus_positions = new_wumpus_positions
         
+        # Check if wumpus actually moved
+        if old_wumpus_positions != self.wumpus_positions:
+            print(f"🔄 Wumpus moved from {old_wumpus_positions} to {self.wumpus_positions}")
+            self.wumpus_moved = True
+        else:
+            self.wumpus_moved = False
+        
         # Check if wumpus moved into agent's position (agent dies)
         if self.agent_position in self.wumpus_positions:
             self.agent_alive = False
@@ -315,6 +324,9 @@ class WumpusWorld:
         """Execute action and return percept"""
         if self.game_over or not self.agent_alive:
             return self._generate_percepts()
+        
+        # Reset wumpus movement flag at start of step
+        self.wumpus_moved = False
         
         # Log action
         self.action_log.append({
@@ -424,6 +436,7 @@ class WumpusWorld:
         self.game_over = False
         self.score = 0
         self.action_count = 0
+        self.wumpus_moved = False  # Reset wumpus movement flag
         self.visited_cells = {(0, 0)}  # Clear all colored cells
         self.last_percept = None
         self.action_log = []

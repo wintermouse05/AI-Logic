@@ -198,6 +198,14 @@ class WumpusVisualizer:
             
             # Execute action in world
             percept = world.step(action)
+            
+            # Check if wumpus moved and notify agent
+            if world.wumpus_moved:
+                print(f"🔄 Wumpus movement detected in step {step_count + 1}")
+                agent.perceive(percept, wumpus_moved=True)
+            else:
+                agent.perceive(percept, wumpus_moved=False)
+            
             agent.update_position(action, percept)
             
             step_count += 1
@@ -246,6 +254,13 @@ class WumpusVisualizer:
             # Choose and execute action
             action = agent.choose_action()
             percept = world.step(action)
+            
+            # Check if wumpus moved and notify agent
+            if world.wumpus_moved:
+                agent.perceive(percept, wumpus_moved=True)
+            else:
+                agent.perceive(percept, wumpus_moved=False)
+            
             agent.update_position(action, percept)
             
             step_count += 1

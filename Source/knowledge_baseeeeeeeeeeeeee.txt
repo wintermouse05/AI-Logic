@@ -1,0 +1,40 @@
+Knowledge Base Summary
+======================
+
+facts:
+  Safe_1_0
+  Stench_1_0
+  Stench_0_0
+  Wumpus_0_1
+  Safe_0_0
+  Breeze_1_0
+
+negative_facts:
+  Pit_0_0
+  Wumpus_1_0
+  Safe_2_0
+  Breeze_0_0
+  Pit_0_1
+  Safe_1_1
+  Wumpus_0_0
+  Glitter_1_0
+  Glitter_0_0
+  Pit_1_0
+
+safe_cells:
+  (1, 0)
+  (0, 0)
+
+dangerous_cells:
+  (0, 1)
+  (1, 1)
+  (2, 0)
+
+possible_wumpus:
+  (0, 1)
+
+certain_wumpus:
+  (0, 1)
+
+certain_pits:
+

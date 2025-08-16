@@ -75,10 +75,17 @@
 # NUM_WUMPUS = 2
 # NUM_PITS = 2
 
+# WORLD_SIZE = 4
+# START_POSITION = (0, 0)
+# GOLD_POSITION = (3, 3)
+# PITS = [(0, 1), (1, 1)]
+# WUMPUS_POSITIONS = [(3, 1), (2, 3)]
+# NUM_WUMPUS = 2
+# NUM_PITS = 2
 WORLD_SIZE = 4
 START_POSITION = (0, 0)
 GOLD_POSITION = (3, 3)
-PITS = [(0, 1), (1, 1)]
-WUMPUS_POSITIONS = [(3, 1), (2, 3)]
-NUM_WUMPUS = 2
+PITS = [(1, 1), (3, 1)]
+WUMPUS_POSITIONS = [(0, 1), (1, 0), (2, 0)]
+NUM_WUMPUS = 3
 NUM_PITS = 2

@@ -655,6 +655,68 @@ class KnowledgeBase:
         if any_change:
             self.forward_chain()
     
+    def handle_wumpus_movement(self):
+        """Handle wumpus movement by clearing wumpus-related knowledge and re-evaluating stench"""
+        print("🔄 Wumpus moved! Clearing wumpus knowledge and re-evaluating stench...")
+        
+        # Clear all wumpus-related knowledge
+        self._clear_wumpus_knowledge()
+        
+        # Clear all stench knowledge and re-evaluate based on current percepts
+        self._clear_and_reevaluate_stench()
+        
+        # Run inference to update knowledge
+        self.forward_chain()
+    
+    def _clear_wumpus_knowledge(self):
+        """Clear all wumpus-related propositions from knowledge base"""
+        wumpus_facts_to_remove = set()
+        wumpus_negative_facts_to_remove = set()
+        
+        # Find all wumpus-related facts and negative facts
+        for fact in self.facts:
+            if fact.name.startswith("Wumpus_"):
+                wumpus_facts_to_remove.add(fact)
+        
+        for neg_fact in self.negative_facts:
+            if neg_fact.name.startswith("Wumpus_"):
+                wumpus_negative_facts_to_remove.add(neg_fact)
+        
+        # Remove wumpus facts
+        for fact in wumpus_facts_to_remove:
+            self.facts.discard(fact)
+        
+        for neg_fact in wumpus_negative_facts_to_remove:
+            self.negative_facts.discard(neg_fact)
+        
+        print(f"🧹 Cleared {len(wumpus_facts_to_remove)} wumpus facts and {len(wumpus_negative_facts_to_remove)} wumpus negative facts")
+    
+    def _clear_and_reevaluate_stench(self):
+        """Clear all stench knowledge and re-evaluate based on current percepts"""
+        stench_facts_to_remove = set()
+        stench_negative_facts_to_remove = set()
+        
+        # Find all stench-related facts and negative facts
+        for fact in self.facts:
+            if fact.name.startswith("Stench_"):
+                stench_facts_to_remove.add(fact)
+        
+        for neg_fact in self.negative_facts:
+            if neg_fact.name.startswith("Stench_"):
+                stench_negative_facts_to_remove.add(neg_fact)
+        
+        # Remove stench facts
+        for fact in stench_facts_to_remove:
+            self.facts.discard(fact)
+        
+        for neg_fact in stench_negative_facts_to_remove:
+            self.negative_facts.discard(neg_fact)
+        
+        print(f"👃 Cleared {len(stench_facts_to_remove)} stench facts and {len(stench_negative_facts_to_remove)} stench negative facts")
+        
+        # Note: The agent will need to re-perceive the current position to get updated stench information
+        # This is handled in the agent's perceive method when it detects wumpus movement
+    
     def get_knowledge_summary(self) -> Dict:
         """Get summary of current knowledge for debugging/visualization"""
         summary = {

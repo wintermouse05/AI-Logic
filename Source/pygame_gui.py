@@ -520,6 +520,13 @@ class WumpusWorldPygameGUI:
         
         # Execute action
         percept = self.world.step(action)
+        
+        # Check if wumpus moved and notify agent
+        if self.world.wumpus_moved:
+            self.agent.perceive(percept, wumpus_moved=True)
+        else:
+            self.agent.perceive(percept, wumpus_moved=False)
+        
         self.agent.update_position(action, percept)
         
         # Queue update message
