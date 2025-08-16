@@ -167,7 +167,7 @@ class WumpusWorldPygameGUI:
         # Settings sliders (x, y, width, height, min_val, max_val, current_val)
         self.sliders['world_size'] = {
             'rect': pygame.Rect(200, 250, 150, 20),
-            'min': 4, 'max': 10, 'value': 6, 'label': 'World Size'
+            'min': 4, 'max': 10, 'value': 8, 'label': 'World Size'
         }
         self.sliders['wumpus_count'] = {
             'rect': pygame.Rect(200, 290, 150, 20),
