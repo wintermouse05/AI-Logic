@@ -717,6 +717,94 @@ class KnowledgeBase:
         # Note: The agent will need to re-perceive the current position to get updated stench information
         # This is handled in the agent's perceive method when it detects wumpus movement
     
+    def handle_moving_wumpus_enhanced(self, current_position: Tuple[int, int] = None):
+        """
+        Enhanced handler for moving wumpus scenario.
+        
+        This function:
+        1. Clears all memory about wumpus possible positions
+        2. Clears memory about stench and prepares for re-evaluation
+        3. Optionally re-perceives current position if provided
+        4. Runs inference to update knowledge base
+        
+        Args:
+            current_position: Optional current agent position to re-perceive stench
+        """
+        print("🔄 Enhanced wumpus movement handler activated!")
+        
+        # Step 1: Clear all wumpus-related knowledge
+        self._clear_wumpus_knowledge()
+        
+        # Step 2: Clear all stench knowledge
+        self._clear_and_reevaluate_stench()
+        
+        # Step 3: If current position is provided, re-perceive to get updated stench
+        if current_position is not None:
+            self._re_perceive_current_position(current_position)
+        
+        # Step 4: Run inference to propagate new knowledge
+        self.forward_chain()
+        
+        print("✅ Moving wumpus knowledge base update completed!")
+    
+    def _re_perceive_current_position(self, position: Tuple[int, int]):
+        """
+        Re-perceive the current position to get updated stench information.
+        This is called after clearing stench knowledge to get fresh percepts.
+        
+        Args:
+            position: Current agent position (x, y)
+        """
+        x, y = position
+        
+        # Mark current position as safe (agent is alive)
+        safe_prop = self._create_proposition("Safe", x, y)
+        self.add_fact(safe_prop)
+        
+        # Mark current position as having no pit or wumpus (agent is alive)
+        pit_prop = self._create_proposition("Pit", x, y)
+        wumpus_prop = self._create_proposition("Wumpus", x, y)
+        self.add_negative_fact(pit_prop)
+        self.add_negative_fact(wumpus_prop)
+        
+        print(f"📍 Re-perceived position {position} - marked as safe")
+    
+    def clear_wumpus_and_stench_knowledge(self):
+        """
+        Utility function to clear only wumpus and stench knowledge without running inference.
+        Useful for testing or when you want to clear knowledge but handle inference separately.
+        """
+        print("🧹 Clearing wumpus and stench knowledge...")
+        
+        # Clear wumpus knowledge
+        self._clear_wumpus_knowledge()
+        
+        # Clear stench knowledge
+        self._clear_and_reevaluate_stench()
+        
+        print("✅ Wumpus and stench knowledge cleared!")
+    
+    def get_wumpus_knowledge_status(self) -> Dict:
+        """
+        Get current status of wumpus-related knowledge for debugging.
+        
+        Returns:
+            Dictionary with counts of wumpus and stench facts
+        """
+        wumpus_facts = [f for f in self.facts if f.name.startswith("Wumpus_")]
+        wumpus_negative_facts = [f for f in self.negative_facts if f.name.startswith("Wumpus_")]
+        stench_facts = [f for f in self.facts if f.name.startswith("Stench_")]
+        stench_negative_facts = [f for f in self.negative_facts if f.name.startswith("Stench_")]
+        
+        return {
+            'wumpus_facts_count': len(wumpus_facts),
+            'wumpus_negative_facts_count': len(wumpus_negative_facts),
+            'stench_facts_count': len(stench_facts),
+            'stench_negative_facts_count': len(stench_negative_facts),
+            'wumpus_facts': [str(f) for f in wumpus_facts],
+            'stench_facts': [str(f) for f in stench_facts]
+        }
+    
     def get_knowledge_summary(self) -> Dict:
         """Get summary of current knowledge for debugging/visualization"""
         summary = {
