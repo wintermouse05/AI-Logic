@@ -44,6 +44,10 @@ class WumpusAgent:
         self.previous_percepts = {}  # Store previous percepts by position
         self.last_shooting_position = None  # Track where we last shot from
         self.last_shooting_direction = None  # Track direction we last shot
+        
+        # Turn counter for stuck detection
+        self.turn_count_in_current_cell = 0
+        self.last_cell_position = (0, 0)
     
     def perceive(self, percept: Percept):
         """Process percept and update knowledge base"""
@@ -97,6 +101,26 @@ class WumpusAgent:
     
     def choose_action(self) -> Action:
         """Choose next action based on current knowledge and strategy"""
+        
+        # Check if agent has turned too many times in current cell (stuck detection)
+        if self.turn_count_in_current_cell > 5:
+            print(f"🚨 Agent stuck! Turned {self.turn_count_in_current_cell} times in cell {self.position}")
+            print("🔄 Planning to exit game due to excessive turning...")
+            
+            # Plan to return to start and exit
+            if self.position != (0, 0):
+                exit_plan = self.planner.find_path_to_goal(
+                    self.position, self.direction, [(0, 0)]
+                )
+                if exit_plan:
+                    self.plan = exit_plan + [Action.CLIMB_OUT]
+                    return self.plan.pop(0)
+                else:
+                    # If no path found, just try to climb out anyway
+                    return Action.CLIMB_OUT
+            else:
+                # Already at start, exit immediately
+                return Action.CLIMB_OUT
         
         # If we have a plan, continue executing it
         if self.plan:
@@ -685,16 +709,26 @@ class WumpusAgent:
             if 0 <= new_position[0] < self.world_size and 0 <= new_position[1] < self.world_size:
                 self.position = new_position
                 self.visited_cells.add(self.position)
+                # Reset turn counter when moving to a new cell
+                if self.position != self.last_cell_position:
+                    self.turn_count_in_current_cell = 0
+                    self.last_cell_position = self.position
         
         elif action == Action.TURN_LEFT:
             directions = [Direction.NORTH, Direction.WEST, Direction.SOUTH, Direction.EAST]
             current_index = directions.index(self.direction)
             self.direction = directions[(current_index + 1) % 4]
+            # Increment turn counter
+            self.turn_count_in_current_cell += 1
+            print(f"🔄 Turn left - Turn count in current cell: {self.turn_count_in_current_cell}")
         
         elif action == Action.TURN_RIGHT:
             directions = [Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST]
             current_index = directions.index(self.direction)
             self.direction = directions[(current_index + 1) % 4]
+            # Increment turn counter
+            self.turn_count_in_current_cell += 1
+            print(f"🔄 Turn right - Turn count in current cell: {self.turn_count_in_current_cell}")
         
         elif action == Action.GRAB:
             if percept.glitter or (self.gold_position and self.position == self.gold_position):
@@ -770,6 +804,10 @@ class WumpusAgent:
         self.previous_percepts = {}
         self.last_shooting_position = None
         self.last_shooting_direction = None
+        
+        # Reset turn counter
+        self.turn_count_in_current_cell = 0
+        self.last_cell_position = (0, 0)
         
         # Reset knowledge base (forget about dangerous cells in old world)
         self.kb = KnowledgeBase(self.world_size, self.num_wumpus)
