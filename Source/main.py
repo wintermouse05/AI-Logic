@@ -11,7 +11,7 @@ from visualization import WumpusVisualizer, run_comparison_experiment
 
 def main():
     parser = argparse.ArgumentParser(description='Wumpus World Simulation')
-    parser.add_argument('--mode', choices=['demo', 'experiment', 'interactive', 'gui'], 
+    parser.add_argument('--mode', choices=['demo', 'experiment', 'interactive'], 
                        default='demo', help='Simulation mode')
     parser.add_argument('--size', type=int, default=6, help='World size (default: 6)')
     parser.add_argument('--wumpus', type=int, default=2, help='Number of wumpus (default: 2)')
@@ -33,8 +33,6 @@ def main():
         run_experiment(args)
     elif args.mode == 'interactive':
         run_interactive(args)
-    elif args.mode == 'gui':
-        run_gui(args)
 
 def run_demo(args):
     """Run a single demonstration"""
