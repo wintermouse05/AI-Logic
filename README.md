@@ -35,7 +35,7 @@ This project is a Wumpus World puzzle solver with a graphical user interface (GU
 	```
 	5. You can run main.py with command-line parameters to control simulation mode and options. For example:
 	```bash
-	python main.py --mode demo --size 8 --wumpus 2 --pit-prob 0.2 --delay 1.0 --trials 10 --agent-type intelligent --moving-wumpus --show-hidden
+	python main.py --mode demo --size 6 --wumpus 2 --pit-prob 0.2 --delay 1.0 --trials 10 --agent-type intelligent
 	```
 	Available parameters:
 	- `--mode`: demo, experiment, interactive

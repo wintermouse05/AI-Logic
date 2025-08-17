@@ -1,0 +1,87 @@
+============================================================
+🧪 Testing Intelligent Agent on Custom 6x6 Map
+============================================================
+
+🗺️  Current World State:
+Y5: .  .  P  .  .  P
+Y4: .  P  .  .  .  .
+Y3: W  .  .  .  P  .
+Y2: .  .  .  .  .  .
+Y1: P  .  .  .  .  P
+Y0: A  .  .  .  .  g
+    X0 X1 X2 X3 X4 X5
+
+🎮 Starting simulation...
+----------------------------------------
+💨 Breeze detected at (0, 0)
+🔍 Cautiously exploring unknown cell: (0, 1)
+Step   1: (0, 0) -> move_forward
+         Percept: [Breeze]
+🛡️ Moving to safe cell: (1, 1)
+Step   2: (1, 0) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (2, 1)
+Step   3: (2, 0) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (4, 0)
+Step   4: (3, 0) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (5, 0)
+Step   5: (4, 0) -> move_forward
+         Percept: [None]
+🏆 Gold discovered at (5, 0)!
+📦 Grabbing gold...
+✨ Gold acquired!
+Step   6: (5, 0) -> grab
+         Percept: [Breeze, Glitter]
+🏃 Planning return to start...
+🔄 Turn left - Turn count in current cell: 1
+Step   7: (5, 0) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 2
+Step   8: (5, 0) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: move_forward
+Step   9: (5, 0) -> move_forward
+         Percept: [Breeze]
+🎯 Executing planned action: move_forward
+Step  10: (4, 0) -> move_forward
+         Percept: [None]
+🎯 Executing planned action: move_forward
+Step  11: (3, 0) -> move_forward
+         Percept: [None]
+🎯 Executing planned action: move_forward
+Step  12: (2, 0) -> move_forward
+         Percept: [None]
+🎯 Executing planned action: move_forward
+Step  13: (1, 0) -> move_forward
+         Percept: [None]
+🎯 Executing planned action: climb_out
+Step  14: (0, 0) -> climb_out
+         Percept: [Breeze]
+
+============================================================
+📊 FINAL RESULTS
+============================================================
+
+🗺️  Current World State:
+Y5: .  .  P  .  .  P
+Y4: .  P  .  .  .  .
+Y3: W  .  .  .  P  .
+Y2: .  .  .  .  .  .
+Y1: P  .  .  .  .  P
+Y0: A  x  x  x  x  G
+    X0 X1 X2 X3 X4 X5
+
+🎯 Mission Status:
+   Total steps: 14
+   Final position: (0, 0)
+   Agent alive: ✅ Yes
+   Has gold: ✅ Yes
+   Final score: 998
+
+🏆 COMPLETE SUCCESS
+   Agent retrieved gold and survived!
+   
+   

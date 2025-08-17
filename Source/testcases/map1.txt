@@ -1,0 +1,129 @@
+============================================================
+🧪 Testing Intelligent Agent on Custom 8x8 Map
+============================================================
+
+🗺️  Current World State:
+Y7: P  .  .  .  .  P  g  . 
+Y6: .  .  .  .  W  .  .  . 
+Y5: .  P  .  .  .  .  .  P 
+Y4: .  .  P  .  .  .  .  . 
+Y3: .  .  .  P  .  .  .  . 
+Y2: .  P  .  .  .  .  .  . 
+Y1: .  .  .  .  .  P  .  P 
+Y0: A  .  P  .  W  .  P  P 
+    X0 X1 X2 X3 X4 X5 X6 X7
+
+🎮 Starting simulation...
+----------------------------------------
+🛡️ Moving to safe cell: (0, 1)
+Step   1: (0, 0) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (0, 1)
+🔄 Turn left - Turn count in current cell: 1
+Step   2: (1, 0) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 2
+Step   3: (1, 0) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: move_forward
+Step   4: (1, 0) -> move_forward
+         Percept: [Breeze]
+🎯 Executing planned action: turn_right
+🔄 Turn right - Turn count in current cell: 1
+Step   5: (0, 0) -> turn_right
+         Percept: [None]
+🎯 Executing planned action: move_forward
+Step   6: (0, 0) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (1, 1)
+Step   7: (0, 1) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (1, 1)
+🔄 Turn left - Turn count in current cell: 1
+Step   8: (0, 2) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 2
+Step   9: (0, 2) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: move_forward
+Step  10: (0, 2) -> move_forward
+         Percept: [Breeze]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 1
+Step  11: (0, 1) -> turn_left
+         Percept: [None]
+🎯 Executing planned action: move_forward
+Step  12: (0, 1) -> move_forward
+         Percept: [None]
+🔍 Cautiously exploring unknown cell: (1, 2)
+Step  13: (1, 1) -> move_forward
+         Percept: [Breeze]
+🔍 Cautiously exploring unknown cell: (2, 2)
+Step  14: (2, 1) -> move_forward
+         Percept: [Breeze]
+🛡️ Moving to safe cell: (3, 0)
+Step  15: (3, 1) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (3, 0)
+🔄 Turn left - Turn count in current cell: 1
+Step  16: (4, 1) -> turn_left
+         Percept: [Stench, Breeze]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 2
+Step  17: (4, 1) -> turn_left
+         Percept: [Stench, Breeze]
+🎯 Executing planned action: move_forward
+Step  18: (4, 1) -> move_forward
+         Percept: [Stench, Breeze]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 1
+Step  19: (3, 1) -> turn_left
+         Percept: [None]
+🎯 Executing planned action: move_forward
+Step  20: (3, 1) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (3, 2)
+🔄 Turn left - Turn count in current cell: 1
+Step  21: (3, 0) -> turn_left
+         Percept: [Stench, Breeze]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 2
+Step  22: (3, 0) -> turn_left
+         Percept: [Stench, Breeze]
+🎯 Executing planned action: move_forward
+Step  23: (3, 0) -> move_forward
+         Percept: [Stench, Breeze]
+🎯 Executing planned action: move_forward
+Step  24: (3, 1) -> move_forward
+         Percept: [None]
+🔍 Cautiously exploring unknown cell: (2, 2)
+Step  25: (3, 2) -> move_forward
+         Percept: [Breeze]
+
+============================================================
+📊 FINAL RESULTS
+============================================================
+
+🗺️  Current World State:
+Y7: P  .  .  .  .  P  g  .
+Y6: .  .  .  .  W  .  .  .
+Y5: .  P  .  .  .  .  .  P
+Y4: .  .  P  .  .  .  .  .
+Y3: .  .  .  D  .  .  .  .
+Y2: x  P  .  x  .  .  .  .
+Y1: x  x  x  x  x  P  .  P 
+Y0: x  x  P  x  W  .  P  P
+    X0 X1 X2 X3 X4 X5 X6 X7
+
+🎯 Mission Status:
+   Total steps: 25
+   Final position: (3, 3)
+   Agent alive: ❌ No
+   Has gold: ❌ No
+   Final score: -1025
+
+❌ MISSION FAILED
+   Agent died during mission (fell into pit at (3, 3))
+   Final score: 1006

@@ -1,0 +1,223 @@
+============================================================
+🧪 Testing Intelligent Agent on Custom 6x6 Map
+============================================================
+
+🗺️  Current World State:
+Y5: .  .  g  .  .  .
+Y4: .  .  .  P  P  P
+Y3: P  .  .  .  .  .
+Y2: .  .  .  .  .  .
+Y1: P  .  .  .  .  .
+Y0: A  .  .  P  .  .
+    X0 X1 X2 X3 X4 X5
+
+🎮 Starting simulation...
+----------------------------------------
+💨 Breeze detected at (0, 0)
+🔍 Cautiously exploring unknown cell: (0, 1)
+Step   1: (0, 0) -> move_forward
+         Percept: [Breeze]
+🛡️ Moving to safe cell: (1, 1)
+Step   2: (1, 0) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (1, 1)
+🔄 Turn left - Turn count in current cell: 1
+Step   3: (2, 0) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 2
+Step   4: (2, 0) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: move_forward
+Step   5: (2, 0) -> move_forward
+         Percept: [Breeze]
+🎯 Executing planned action: turn_right
+🔄 Turn right - Turn count in current cell: 1
+Step   6: (1, 0) -> turn_right
+         Percept: [None]
+🎯 Executing planned action: move_forward
+Step   7: (1, 0) -> move_forward
+         Percept: [None]
+🔍 Cautiously exploring unknown cell: (1, 2)
+Step   8: (1, 1) -> move_forward
+         Percept: [Breeze]
+🛡️ Moving to safe cell: (0, 2)
+Step   9: (1, 2) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (0, 2)
+🔄 Turn left - Turn count in current cell: 1
+Step  10: (1, 3) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 2
+Step  11: (1, 3) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: move_forward
+Step  12: (1, 3) -> move_forward
+         Percept: [Breeze]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 1
+Step  13: (1, 2) -> turn_left
+         Percept: [None]
+🎯 Executing planned action: move_forward
+Step  14: (1, 2) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (2, 1)
+Step  15: (2, 2) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (3, 1)
+Step  16: (3, 2) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (4, 1)
+Step  17: (4, 2) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (4, 1)
+🔄 Turn left - Turn count in current cell: 1
+Step  18: (5, 2) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 2
+Step  19: (5, 2) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: move_forward
+Step  20: (5, 2) -> move_forward
+         Percept: [Breeze]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 1
+Step  21: (4, 2) -> turn_left
+         Percept: [None]
+🎯 Executing planned action: move_forward
+Step  22: (4, 2) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (4, 0)
+Step  23: (4, 1) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (3, 1)
+🔄 Turn left - Turn count in current cell: 1
+Step  24: (4, 0) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 2
+Step  25: (4, 0) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: move_forward
+Step  26: (4, 0) -> move_forward
+         Percept: [Breeze]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 1
+Step  27: (4, 1) -> turn_left
+         Percept: [None]
+🎯 Executing planned action: move_forward
+Step  28: (4, 1) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (2, 1)
+Step  29: (3, 1) -> move_forward
+         Percept: [Breeze]
+🛡️ Moving to safe cell: (2, 3)
+🔄 Turn right - Turn count in current cell: 1
+Step  30: (2, 1) -> turn_right
+         Percept: [None]
+🎯 Executing planned action: move_forward
+Step  31: (2, 1) -> move_forward
+         Percept: [None]
+🎯 Executing planned action: move_forward
+Step  32: (2, 2) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (3, 3)
+Step  33: (2, 3) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (3, 3)
+🔄 Turn left - Turn count in current cell: 1
+Step  34: (2, 4) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 2
+Step  35: (2, 4) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: move_forward
+Step  36: (2, 4) -> move_forward
+         Percept: [Breeze]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 1
+Step  37: (2, 3) -> turn_left
+         Percept: [None]
+🎯 Executing planned action: move_forward
+Step  38: (2, 3) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (4, 3)
+Step  39: (3, 3) -> move_forward
+         Percept: [Breeze]
+🛡️ Moving to safe cell: (5, 1)
+🔄 Turn right - Turn count in current cell: 1
+Step  40: (4, 3) -> turn_right
+         Percept: [Breeze]
+🎯 Executing planned action: move_forward
+Step  41: (4, 3) -> move_forward
+         Percept: [Breeze]
+🎯 Executing planned action: move_forward
+Step  42: (4, 2) -> move_forward
+         Percept: [None]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 1
+Step  43: (4, 1) -> turn_left
+         Percept: [None]
+🎯 Executing planned action: move_forward
+Step  44: (4, 1) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (0, 2)
+🔄 Turn left - Turn count in current cell: 1
+Step  45: (5, 1) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: move_forward
+Step  46: (5, 1) -> move_forward
+         Percept: [Breeze]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 1
+Step  47: (5, 2) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: move_forward
+Step  48: (5, 2) -> move_forward
+         Percept: [Breeze]
+🎯 Executing planned action: move_forward
+Step  49: (4, 2) -> move_forward
+         Percept: [None]
+🎯 Executing planned action: move_forward
+Step  50: (3, 2) -> move_forward
+         Percept: [None]
+🎯 Executing planned action: move_forward
+Step  51: (2, 2) -> move_forward
+         Percept: [None]
+🎯 Executing planned action: move_forward
+Step  52: (1, 2) -> move_forward
+         Percept: [None]
+🔍 Cautiously exploring unknown cell: (0, 3)
+🔄 Turn right - Turn count in current cell: 1
+Step  53: (0, 2) -> turn_right
+         Percept: [Breeze]
+🎯 Executing planned action: move_forward
+Step  54: (0, 2) -> move_forward
+         Percept: [Breeze]
+
+============================================================
+📊 FINAL RESULTS
+============================================================
+
+🗺️  Current World State:
+Y5: .  .  g  .  .  .
+Y4: .  .  x  P  P  P
+Y3: D  x  x  x  x  .
+Y2: x  x  x  x  x  x
+Y1: P  x  x  x  x  x
+Y0: x  x  x  P  x  .
+    X0 X1 X2 X3 X4 X5
+
+🎯 Mission Status:
+   Total steps: 54
+   Final position: (0, 3)
+   Agent alive: ❌ No
+   Has gold: ❌ No
+   Final score: -1054
+
+❌ MISSION FAILED
+   Agent died during mission (fell into pit at (0, 3))
+   
