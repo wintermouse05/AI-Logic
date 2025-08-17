@@ -1,0 +1,81 @@
+
+   ============================================================
+🧪 Testing Intelligent Agent on Custom 4x4 Map
+============================================================
+
+🗺️  Current World State:
+Y3: .  .  .  . 
+Y2: P  .  .  P 
+Y1: .  .  W  P 
+Y0: A  .  .  . 
+    X0 X1 X2 X3
+
+🎮 Starting simulation...
+----------------------------------------
+🛡️ Moving to safe cell: (0, 1)
+Step   1: (0, 0) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (1, 1)
+Step   2: (1, 0) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (1, 1)
+🔄 Turn left - Turn count in current cell: 1
+Step   3: (2, 0) -> turn_left
+         Percept: [Stench]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 2
+Step   4: (2, 0) -> turn_left
+         Percept: [Stench]
+🎯 Executing planned action: move_forward
+Step   5: (2, 0) -> move_forward
+         Percept: [Stench]
+🎯 Executing planned action: turn_right
+🔄 Turn right - Turn count in current cell: 1
+Step   6: (1, 0) -> turn_right
+         Percept: [None]
+🎯 Executing planned action: move_forward
+Step   7: (1, 0) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (0, 1)
+🔄 Turn left - Turn count in current cell: 1
+Step   8: (1, 1) -> turn_left
+         Percept: [Stench]
+🎯 Executing planned action: move_forward
+Step   9: (1, 1) -> move_forward
+         Percept: [Stench]
+🔍 Cautiously exploring unknown cell: (1, 2)
+🔄 Turn left - Turn count in current cell: 1
+Step  10: (0, 1) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 2
+Step  11: (0, 1) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: move_forward
+Step  12: (0, 1) -> move_forward
+         Percept: [Breeze]
+🎯 Executing planned action: move_forward
+Step  13: (1, 1) -> move_forward
+         Percept: [Stench]
+
+============================================================
+📊 FINAL RESULTS
+============================================================
+
+🗺️  Current World State:
+Y3: .  .  .  .
+Y2: P  .  .  P
+Y1: x  x  D  P
+Y0: x  x  x  .
+    X0 X1 X2 X3
+
+🎯 Mission Status:
+   Total steps: 13
+   Final position: (2, 1)
+   Agent alive: ❌ No
+   Has gold: ❌ No
+   Final score: -1013
+
+❌ MISSION FAILED
+   Agent died during mission (eaten by wumpus at (2, 1))
+   

@@ -1,0 +1,157 @@
+============================================================
+🧪 Testing Intelligent Agent on Custom 4x4 Map
+============================================================
+
+🗺️  Current World State:
+Y3: .  .  .  .
+Y2: .  .  .  P
+Y1: .  .  .  g
+Y0: A  .  W  .
+    X0 X1 X2 X3
+
+🎮 Starting simulation...
+----------------------------------------
+🛡️ Moving to safe cell: (0, 1)
+Step   1: (0, 0) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (0, 1)
+🔄 Turn left - Turn count in current cell: 1
+Step   2: (1, 0) -> turn_left
+         Percept: [Stench]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 2
+Step   3: (1, 0) -> turn_left
+         Percept: [Stench]
+🎯 Executing planned action: move_forward
+Step   4: (1, 0) -> move_forward
+         Percept: [Stench]
+🎯 Executing planned action: turn_right
+🔄 Turn right - Turn count in current cell: 1
+Step   5: (0, 0) -> turn_right
+         Percept: [None]
+🎯 Executing planned action: move_forward
+Step   6: (0, 0) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (1, 1)
+Step   7: (0, 1) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (1, 2)
+Step   8: (0, 2) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (1, 3)
+🔄 Turn right - Turn count in current cell: 1
+Step   9: (0, 3) -> turn_right
+         Percept: [None]
+🎯 Executing planned action: move_forward
+Step  10: (0, 3) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (1, 2)
+Step  11: (1, 3) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (1, 2)
+🔄 Turn left - Turn count in current cell: 1
+Step  12: (2, 3) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 2
+Step  13: (2, 3) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: move_forward
+Step  14: (2, 3) -> move_forward
+         Percept: [Breeze]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 1
+Step  15: (1, 3) -> turn_left
+         Percept: [None]
+🎯 Executing planned action: move_forward
+Step  16: (1, 3) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (1, 1)
+Step  17: (1, 2) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (2, 1)
+🔄 Turn left - Turn count in current cell: 1
+Step  18: (1, 1) -> turn_left
+         Percept: [None]
+🎯 Executing planned action: move_forward
+Step  19: (1, 1) -> move_forward
+         Percept: [None]
+🛡️ Moving to safe cell: (2, 2)
+🔄 Turn left - Turn count in current cell: 1
+Step  20: (2, 1) -> turn_left
+         Percept: [Stench]
+🎯 Executing planned action: move_forward
+Step  21: (2, 1) -> move_forward
+         Percept: [Stench]
+🔍 Cautiously exploring unknown cell: (3, 1)
+🔄 Turn left - Turn count in current cell: 1
+Step  22: (2, 2) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 2
+Step  23: (2, 2) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: move_forward
+Step  24: (2, 2) -> move_forward
+         Percept: [Breeze]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 1
+Step  25: (2, 1) -> turn_left
+         Percept: [Stench]
+🎯 Executing planned action: move_forward
+Step  26: (2, 1) -> move_forward
+         Percept: [Stench]
+🏆 Gold discovered at (3, 1)!
+📦 Grabbing gold...
+✨ Gold acquired!
+Step  27: (3, 1) -> grab
+         Percept: [Breeze, Glitter]
+🏃 Planning return to start...
+🔄 Turn left - Turn count in current cell: 1
+Step  28: (3, 1) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 2
+Step  29: (3, 1) -> turn_left
+         Percept: [Breeze]
+🎯 Executing planned action: move_forward
+Step  30: (3, 1) -> move_forward
+         Percept: [Breeze]
+🎯 Executing planned action: move_forward
+Step  31: (2, 1) -> move_forward
+         Percept: [Stench]
+🎯 Executing planned action: move_forward
+Step  32: (1, 1) -> move_forward
+         Percept: [None]
+🎯 Executing planned action: turn_left
+🔄 Turn left - Turn count in current cell: 1
+Step  33: (0, 1) -> turn_left
+         Percept: [None]
+🎯 Executing planned action: move_forward
+Step  34: (0, 1) -> move_forward
+         Percept: [None]
+🎯 Executing planned action: climb_out
+Step  35: (0, 0) -> climb_out
+         Percept: [None]
+
+============================================================
+📊 FINAL RESULTS
+============================================================
+
+🗺️  Current World State:
+Y3: x  x  x  .
+Y2: x  x  x  P
+Y1: x  x  x  G
+Y0: A  x  W  .
+    X0 X1 X2 X3
+
+🎯 Mission Status:
+   Total steps: 35
+   Final position: (0, 0)
+   Agent alive: ✅ Yes
+   Has gold: ✅ Yes
+   Final score: 977
+
+🏆 COMPLETE SUCCESS
+   Agent retrieved gold and survived!
+   
