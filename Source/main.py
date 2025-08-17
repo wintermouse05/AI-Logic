@@ -149,19 +149,6 @@ def run_interactive(args):
         else:
             print("Unknown command. Available: demo, new, experiment, quit")
 
-def run_gui(args):
-    """Run GUI version"""
-    try:
-        from gui import WumpusWorldGUI
-        print("🎮 Starting Wumpus World GUI...")
-        app = WumpusWorldGUI()
-        app.run()
-    except ImportError as e:
-        print(f"Error: GUI dependencies not available: {e}")
-        print("Make sure tkinter is installed (usually comes with Python)")
-    except Exception as e:
-        print(f"Error starting GUI: {e}")
-
 def create_test_cases():
     """Create test cases for submission"""
     print("Creating test cases...")
