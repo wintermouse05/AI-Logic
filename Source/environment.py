@@ -108,10 +108,7 @@ class WumpusWorld:
             
             # Check if there's a safe path to gold using BFS
             if self._has_safe_path_to_gold():
-                return  # Valid world generated
-        
-        # If we can't generate a valid world after max_attempts, create a minimal safe world
-        self._generate_minimal_safe_world()
+                return  # Valid world generated        
     
     def _has_safe_path_to_gold(self):
         """Check if there's a safe path from (0,0) to gold using BFS"""
@@ -158,39 +155,7 @@ class WumpusWorld:
                 queue.append((nx, ny))
         
         return False
-    
-    # def _generate_minimal_safe_world(self):
-    #     """Generate a minimal safe world that's always winnable"""
-    #     print("Generating minimal safe world (backup)...")
         
-    #     self.pits = set()
-    #     self.wumpus_positions = set()
-        
-    #     # Create a simple path pattern
-    #     if self.size >= 4:
-    #         # Place wumpus in a safe corner, away from main path
-    #         self.wumpus_positions = {(self.size - 1, self.size - 1)}
-            
-    #         # Place gold in an accessible location
-    #         self.gold_position = (2, 0) if self.size > 2 else (1, 0)
-            
-    #         # Add one or two pits in safe locations that don't block the path
-    #         if self.size >= 4:
-    #             # Add pit that doesn't block path to gold
-    #             self.pits = {(1, 2)} if self.size > 3 else set()
-        
-    #     elif self.size == 3:
-    #         # For 3x3 world
-    #         self.wumpus_positions = {(2, 2)}
-    #         self.gold_position = (1, 0)
-    #         self.pits = {(0, 2)}  # One pit that doesn't block path
-        
-    #     else:
-    #         # For very small worlds (2x2), keep it minimal
-    #         self.wumpus_positions = {(1, 1)}
-    #         self.gold_position = (1, 0)
-    #         self.pits = set()  # No pits in tiny worlds
-    
     def _is_valid_position(self, pos):
         """Check if position is within world boundaries"""
         x, y = pos
